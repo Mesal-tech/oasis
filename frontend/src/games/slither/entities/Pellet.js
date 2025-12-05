@@ -8,9 +8,9 @@ export default class Pellet {
 
     // Size variants: small (0.5x), medium (1x), large (2x) relative to snake head
     const sizeConfig = {
-      small: { scale: 1.05, growAmount: 0.5, radius: 20 },
-      medium: { scale: 2.1, growAmount: 1, radius: 30 },
-      large: { scale: 4.2, growAmount: 3, radius: 45 }
+      small: { scale: 0.35, growAmount: 0.5, radius: 20 },
+      medium: { scale: 0.7, growAmount: 1, radius: 30 },
+      large: { scale: 1.4, growAmount: 3, radius: 45 }
     };
 
     this.config = sizeConfig[size] || sizeConfig.medium;
@@ -21,7 +21,7 @@ export default class Pellet {
     this.container.setDepth(5);
 
     // Background hex layer
-    this.hexSprite = scene.add.image(0, 0, 'hex');
+    this.hexSprite = scene.add.image(0, 0, 'circle');
     this.hexSprite.setScale(this.config.scale);
 
     // Foreground food layer (slightly smaller for border effect)

@@ -334,7 +334,7 @@ export class MainLobby {
 
       const navigate = async () => {
         console.log(`Launching game: ${game.title} (ID: ${game.id})`);
-        await router.navigateTo(`game-${game.id}`);
+        router.navigate('/game/' + game.id);
       };
 
       card.addEventListener('click', navigate);

@@ -2,13 +2,13 @@
 // Pure AI, to stop the Compression it initially did to the Components
 import { userStore } from '../../state/userStore.js';
 import { createElement, Home, Trophy, ShoppingBag, Gift, Settings, LogOut, Wallet, Sparkles } from 'lucide';
+import { router } from '../../router.js';
 
 const NAV_ITEMS = [
-  { label: 'Dashboard', icon: Home, href: 'dashboard', active: true },
+  { label: 'Dashboard', icon: Home, href: '/', active: true },
   { label: 'Leaderboard', icon: Trophy, href: 'leaderboard' },
   { label: 'Marketplace', icon: ShoppingBag, href: 'marketplace' },
   { label: 'Rewards', icon: Gift, href: 'rewards' },
-  { label: 'Settings', icon: Settings, href: 'settings' },
 ];
 
 export class Sidebar {
@@ -115,8 +115,9 @@ export class Sidebar {
 
       navItem.addEventListener('click', () => {
         this.setActiveNav(item.href);
-        console.log(`Navigate to: ${item.href}`);
+        router.navigate('/' + item.href);
       });
+
 
       desktopNavContainer.appendChild(navItem);
     });
@@ -154,7 +155,7 @@ export class Sidebar {
 
       navItem.addEventListener('click', () => {
         this.setActiveNav(item.href);
-        console.log(`Navigate to: ${item.href}`);
+        router.navigate('/' + item.href);
       });
 
       mobileNavContainer.appendChild(navItem);

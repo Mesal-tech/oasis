@@ -1,37 +1,17 @@
-// ===== frontend/src/router.js =====
-export const router = {
-  container: null,
-  currentScreen: null,
-  screens: {},
+import Navigo from 'navigo';
 
-  init(container) {
-    this.container = container;
+const router = new Navigo('/');
+
+router.hooks({
+  before(done, match) {
+    // Global before hook (auth, loading, etc.)
+    console.log('Navigating to:', match.url);
+    done();
   },
-
-  async navigateTo(screenName) {
-    if (this.currentScreen) {
-      this.currentScreen.cleanup?.();
-    }
-
-    let screen;
-    try {
-      if (screenName == 'lobby') {
-        const { MainLobby } = await import('./ui/screens/MainLobby/MainLobby.js');
-        screen = new MainLobby();
-      } else if (screenName.startsWith('game-')) {
-        const gameName = screenName.split('-')[1];
-        const { GameScreen } = await import('./ui/screens/GameLobby/GameLobby.js');
-        screen = new GameScreen(gameName);
-      }
-
-      if (screen) {
-        this.container.innerHTML = '';
-        const element = screen.render();
-        this.container.appendChild(element);
-        this.currentScreen = screen;
-      }
-    } catch (error) {
-      console.error('Navigation error:', error);
-    }
+  after(match) {
+    // Global after hook (analytics, cleanup, etc.)
+    console.log('Navigated to:', match.url);
   }
-};
+});
+
+export { router };

@@ -372,7 +372,7 @@ export default class Snake {
       const Pellet = this.scene.sys.game.registry.get('PelletClass');
       if (Pellet) {
         // 80% white pellets, 20% random colored
-        const isWhite = Math.random() < 0.8;
+        const isWhite = Math.random() < 0.6;
         const color = isWhite ? 0xffffff : null;
 
         // Most pellets are small from death
@@ -395,7 +395,7 @@ export default class Snake {
         angle: Phaser.Math.Between(-180, 180),
         y: seg.y - 50,
         duration: 800,
-        delay: i * 30,
+        delay: 30,
         ease: 'Power2'
       });
     });
