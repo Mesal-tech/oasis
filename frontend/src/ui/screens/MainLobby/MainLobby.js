@@ -1,11 +1,11 @@
 // ===== frontend/src/ui/screens/MainLobby/MainLobby.js =====
-import { createElement, createIcons, User, Sparkles } from 'lucide';
+import { createElement, createIcons, User, Sparkles, ChevronDown, LogOut, Settings, Wallet } from 'lucide';
 import { router } from '../../../router.js';
 import GAMES from '../../../config/games.js';
 
 createIcons({
   icons: {
-    User, Sparkles
+    User, Sparkles, ChevronDown, LogOut, Settings, Wallet
   }
 });
 
@@ -14,6 +14,7 @@ export class MainLobby {
     this.currentFilter = 'all';
     this.games = GAMES;
     this.element = null;
+    this.dropdownOpen = false;
   }
 
   render() {
@@ -26,12 +27,83 @@ export class MainLobby {
         <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-end">
           <div class="flex items-center gap-4">
             <button class="md:hidden"><span class="menu-icon text-white text-2xl"></span></button>
-            <button class="relative p-2 hover:bg-white/10 rounded-full"><span class="bell-icon text-white"></span><span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span></button>
-            <div class="flex items-center gap-3 bg-white/10 backdrop-blur-md rounded-full pl-2 pr-4 py-1 border border-white/20">
-              <div class="w-9 h-9 bg-gradient-to-tr from-cyan-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold">S</div>
-              <div class="hidden md:block text-left">
-                <p class="text-white font-semibold text-sm">Sal</p>
-                <p class="text-white/60 text-xs">Level 42 • 92K XP</p>
+            <button class="relative p-2 hover:bg-white/10 rounded-full transition-all">
+              <span class="bell-icon text-white"></span>
+              <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+            </button>
+            
+            <!-- User Profile Button -->
+            <div class="relative user-dropdown-container">
+              <button class="user-profile-btn flex items-center gap-3 bg-white/10 backdrop-blur-md rounded-full p-1 md:pl-2 md:pr-4 md:py-1 border border-white/20 hover:bg-white/15 transition-all">
+                <div class="w-9 h-9 bg-gradient-to-tr from-cyan-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold">S</div>
+                <div class="hidden md:block text-left">
+                  <p class="text-white font-semibold text-sm">Sal</p>
+                  <p class="text-white/60 text-xs">Level 42 • 92K XP</p>
+                </div>
+              </button>
+
+              <!-- Mobile Dropdown Menu -->
+              <div class="user-dropdown absolute right-0 top-full mt-2 w-72 opacity-0 invisible pointer-events-none transition-all duration-300 transform origin-top-right scale-95">
+                <div class="bg-gray-900/80 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl overflow-hidden">
+                  <!-- User Info -->
+                  <div class="p-6 border-b border-white/10">
+                    <div class="flex items-center gap-4 mb-4">
+                      <div class="relative">
+                        <div class="w-16 h-16 bg-gradient-to-tr from-cyan-400 to-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+                          S
+                        </div>
+                        <div class="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-black flex items-center justify-center">
+                          <span class="text-white text-xs">✓</span>
+                        </div>
+                      </div>
+                      <div>
+                        <h3 class="text-lg font-bold text-white">Sal</h3>
+                        <p class="text-white/60 text-sm">0xabcd...sal</p>
+                      </div>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="space-y-2">
+                      <div class="flex items-center justify-between text-sm">
+                        <span class="text-white/70">Level</span>
+                        <span class="text-white font-semibold">42</span>
+                      </div>
+                      <div class="flex items-center justify-between text-sm">
+                        <span class="text-white/70">XP</span>
+                        <span class="text-white font-semibold">92,000</span>
+                      </div>
+                      <div class="flex items-center justify-between text-sm">
+                        <span class="text-white/70">Rank</span>
+                        <span class="bg-gradient-to-r from-amber-700 to-yellow-500 text-black px-2 py-0.5 rounded-full font-bold text-xs">Bronze</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Balance -->
+                  <div class="p-4 border-b border-white/10 bg-gray-800/50">
+                    <div class="flex items-center gap-2 mb-2">
+                      <span class="wallet-icon text-yellow-400"></span>
+                      <span class="text-white/70 text-sm">Balance</span>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                      <span class="bg-white/20 text-white px-3 py-1.5 rounded-full font-bold text-xs">10 USDC</span>
+                      <span class="bg-white/20 text-white px-3 py-1.5 rounded-full font-bold text-xs">9,234 EXP</span>
+                      <span class="bg-white/20 text-white px-3 py-1.5 rounded-full font-bold text-xs">599 stch</span>
+                    </div>
+                  </div>
+
+                  <!-- Actions -->
+                  <div class="p-2">
+                    <button class="settings-btn w-full flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all">
+                      <span class="settings-icon"></span>
+                      <span class="font-medium">Settings</span>
+                    </button>
+                    <button class="logout-btn w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-all">
+                      <span class="logout-icon"></span>
+                      <span class="font-medium">Logout</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -120,15 +192,15 @@ export class MainLobby {
         </div>
       </section>
 
-      <div class="max-w-5xl mx-auto py-12 px-6">
+      <div class="max-w-5xl mx-auto py-12 px-5">
         <!-- Spotlight Games Section -->
-        <div class="bg-[#1d1d1d] p-10 rounded-[30px]">
+        <div class="bg-[#1d1d1d] p-6 rounded-[30px]">
           <div class="w-full flex items-start md:items-center justify-between mb-12 gap-8">
             <div>
-              <h2 class="text-3xl font-semi-bold tracking-tighter text-white">
+              <h2 class="text-lg md:text-3xl font-semi-bold tracking-tighter text-white">
                 Spotlight Games
               </h2>
-              <p class="text-white/70">Enjoy these highly curated Games.</p>
+              <p class="text-white/70 text-sm md:text-lg">Enjoy these highly curated Games.</p>
             </div>
 
             <button class="bg-white text-black text-xs font-bold py-2 px-4 font-bold cursor-pointer hover:bg-white/70 rounded-full active:scale-98 transition-all duration-300 transform hover:-translate-y-1">
@@ -142,9 +214,56 @@ export class MainLobby {
       </div>
     `;
 
+    this.setupDropdown();
     this.renderGames();
 
     return this.element;
+  }
+
+  setupDropdown() {
+    const profileBtn = this.element.querySelector('.user-profile-btn');
+    const dropdown = this.element.querySelector('.user-dropdown');
+
+    // Insert icons
+    this.insertIcon('.wallet-icon', createElement(Wallet, { size: 16 }));
+    this.insertIcon('.settings-icon', createElement(Settings, { size: 18 }));
+    this.insertIcon('.logout-icon', createElement(LogOut, { size: 18 }));
+
+    // Toggle dropdown
+    profileBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.dropdownOpen = !this.dropdownOpen;
+
+      if (this.dropdownOpen) {
+        dropdown.classList.remove('opacity-0', 'invisible', 'pointer-events-none', 'scale-95');
+        dropdown.classList.add('opacity-100', 'visible', 'pointer-events-auto', 'scale-100');
+      } else {
+        dropdown.classList.add('opacity-0', 'invisible', 'pointer-events-none', 'scale-95');
+        dropdown.classList.remove('opacity-100', 'visible', 'pointer-events-auto', 'scale-100');
+      }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!this.element.querySelector('.user-dropdown-container').contains(e.target)) {
+        if (this.dropdownOpen) {
+          dropdown.classList.add('opacity-0', 'invisible', 'pointer-events-none', 'scale-95');
+          dropdown.classList.remove('opacity-100', 'visible', 'pointer-events-auto', 'scale-100');
+          this.dropdownOpen = false;
+        }
+      }
+    });
+
+    // Dropdown action handlers
+    this.element.querySelector('.settings-btn').addEventListener('click', () => {
+      console.log('Navigate to settings');
+      // router.navigateTo('settings');
+    });
+
+    this.element.querySelector('.logout-btn').addEventListener('click', () => {
+      console.log('Logout');
+      // userStore.logout();
+    });
   }
 
   renderGames() {
@@ -165,16 +284,13 @@ export class MainLobby {
         hover:scale-105 hover:shadow-white/5 hover:border-white/15
       `;
 
-      // Full thumbnail as background
       card.style.backgroundImage = `url('${game.thumbnail}')`;
       card.style.backgroundSize = 'cover';
       card.style.backgroundPosition = 'center';
 
       card.innerHTML = `
-        <!-- Dark overlay for readability -->
         <div class="absolute bottom-0 left-0 w-full h-full bg-gradient-to-t from-black/70 to-transparent transition-all duration-500"></div>
 
-        <!-- Content -->
         <div class="relative h-full flex flex-col justify-between p-4 text-white z-10">
           <div class="w-full flex justify-end text-sm">
             <span class="bg-black/80 bg-blur-sm py-1 px-2 rounded-full flex items-center gap-2">
@@ -183,16 +299,14 @@ export class MainLobby {
             </span>
           </div>
 
-          <!-- Bottom: Stats + Play Button -->
           <div class="space-y-6">
-            <!-- Center: Description -->
             <div class="flex items-center justify-between bg-white/20 backdrop-blur-sm p-2 rounded-[15px] ">
               <div class="flex items-center gap-2">
                 <span class="bg-black/50 p-2 flex items-center justify-center rounded-[5px]">
                   ${game.icon}
                 </span>
                 <div>
-                  <h3 class="text-sm font-semi-bold drop-shadow-lg">
+                  <h3 class="text-xs font-semi-bold drop-shadow-lg">
                     ${game.title}
                   </h3>
                   <span class="text-xs font-semibold">
@@ -212,7 +326,7 @@ export class MainLobby {
       `;
 
       const userIcon = createElement(User, {
-        size : 5,
+        size: 5,
         class: 'text-[10rem] font-semibold transition-transform'
       });
 

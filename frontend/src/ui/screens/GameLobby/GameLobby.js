@@ -4,42 +4,43 @@ import { userStore } from '../../../state/userStore.js';
 import GAMES from '../../../config/games.js';
 import "./GameLobby.css"
 let SlitherGame;
+let FlappyBirdGame;
 
 export class GameScreen {
-  constructor(gameName) {
-    this.gameName = gameName;
-    this.game = null;
-    this.gameData = GAMES.find(g => g.id === gameName);
-    this.element = null;
-    this.gameStarted = false;
-  }
+    constructor(gameName) {
+        this.gameName = gameName;
+        this.game = null;
+        this.gameData = GAMES.find(g => g.id === gameName);
+        this.element = null;
+        this.gameStarted = false;
+    }
 
-  render() {
-    this.element = document.createElement('div');
-    this.element.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: black; z-index: 100; display: flex; flex-direction: column;';
-    // Game Container
-    const gameContainer = document.createElement('div');
-    gameContainer.id = 'gameContainer';
-    gameContainer.style.cssText = 'flex: 1; display: flex; flex-direction: column; position: relative;';
+    render() {
+        this.element = document.createElement('div');
+        this.element.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: black; z-index: 100; display: flex; flex-direction: column;';
+        // Game Container
+        const gameContainer = document.createElement('div');
+        gameContainer.id = 'gameContainer';
+        gameContainer.style.cssText = 'flex: 1; display: flex; flex-direction: column; position: relative;';
 
-    // Start Screen (shown initially)
-    const startScreen = this.createStartScreen();
-    gameContainer.appendChild(startScreen);
+        // Start Screen (shown initially)
+        const startScreen = this.createStartScreen();
+        gameContainer.appendChild(startScreen);
 
-    this.element.appendChild(gameContainer);
+        this.element.appendChild(gameContainer);
 
-    return this.element;
-  }
+        return this.element;
+    }
 
-  createStartScreen() {
-    const startScreen = document.createElement('div');
-    startScreen.id = 'startScreen';
-    startScreen.style.cssText = `
+    createStartScreen() {
+        const startScreen = document.createElement('div');
+        startScreen.id = 'startScreen';
+        startScreen.style.cssText = `
             height: 100dvh;
             background: #141415;
         `;
 
-    startScreen.innerHTML = `
+        startScreen.innerHTML = `
             <div class="relative h-full flex justify-between gap-2 items-start">
               <div class="absolute top-0 left-0 w-full h-full">
                 <img src="/assets/slither-thumb.jpg" class="w-full h-full object-cover" />
@@ -69,14 +70,14 @@ export class GameScreen {
             </div>
         `;
 
-    startScreen.querySelector('#startGameBtn').onclick = () => this.showGameModeModal();
+        startScreen.querySelector('#startGameBtn').onclick = () => this.showGameModeModal();
 
-    return startScreen;
-  }
+        return startScreen;
+    }
 
-  showGameModeModal() {
-    const modal = document.createElement('div');
-    modal.style.cssText = `
+    showGameModeModal() {
+        const modal = document.createElement('div');
+        modal.style.cssText = `
             position: fixed;
             top: 0;
             left: 0;
@@ -89,8 +90,8 @@ export class GameScreen {
             z-index: 9999;
         `;
 
-    const modalContent = document.createElement('div');
-    modalContent.style.cssText = `
+        const modalContent = document.createElement('div');
+        modalContent.style.cssText = `
             background: linear-gradient(135deg, #1a1a2e, #16213e);
             border: 2px solid #00d4ff;
             border-radius: 12px;
@@ -100,7 +101,7 @@ export class GameScreen {
             box-shadow: 0 20px 60px rgba(0, 212, 255, 0.5);
         `;
 
-    modalContent.innerHTML = `
+        modalContent.innerHTML = `
             <h2 style="color: #00d4ff; margin-bottom: 2rem; font-size: 2rem; text-align: center;">
                 🎮 Select Game Mode
             </h2>
@@ -193,87 +194,105 @@ export class GameScreen {
             </div>
         `;
 
-    modal.appendChild(modalContent);
-    document.body.appendChild(modal);
+        modal.appendChild(modalContent);
+        document.body.appendChild(modal);
 
-    let selectedMode = null;
-    const confirmBtn = modalContent.querySelector('#confirmBtn');
+        let selectedMode = null;
+        const confirmBtn = modalContent.querySelector('#confirmBtn');
 
-    const aiOption = modalContent.querySelector('[data-mode="ai"]');
-    aiOption.onmouseover = () => {
-      aiOption.style.background = 'rgba(0, 212, 255, 0.2)';
-      aiOption.style.transform = 'scale(1.02)';
-    };
-    aiOption.onmouseout = () => {
-      if (selectedMode !== 'ai') {
-        aiOption.style.background = 'rgba(0, 212, 255, 0.1)';
-        aiOption.style.transform = 'scale(1)';
-      }
-    };
-    aiOption.onclick = () => {
-      selectedMode = 'ai';
-      aiOption.style.background = 'rgba(0, 212, 255, 0.3)';
-      confirmBtn.disabled = false;
-      confirmBtn.style.opacity = '1';
-      confirmBtn.style.cursor = 'pointer';
-    };
+        const aiOption = modalContent.querySelector('[data-mode="ai"]');
+        aiOption.onmouseover = () => {
+            aiOption.style.background = 'rgba(0, 212, 255, 0.2)';
+            aiOption.style.transform = 'scale(1.02)';
+        };
+        aiOption.onmouseout = () => {
+            if (selectedMode !== 'ai') {
+                aiOption.style.background = 'rgba(0, 212, 255, 0.1)';
+                aiOption.style.transform = 'scale(1)';
+            }
+        };
+        aiOption.onclick = () => {
+            selectedMode = 'ai';
+            aiOption.style.background = 'rgba(0, 212, 255, 0.3)';
+            confirmBtn.disabled = false;
+            confirmBtn.style.opacity = '1';
+            confirmBtn.style.cursor = 'pointer';
+        };
 
-    modalContent.querySelector('#cancelBtn').onclick = () => modal.remove();
+        modalContent.querySelector('#cancelBtn').onclick = () => modal.remove();
 
-    confirmBtn.onclick = () => {
-      if (selectedMode === 'ai') {
-        modal.remove();
-        this.launchGame(selectedMode);
-      }
-    };
+        confirmBtn.onclick = () => {
+            if (selectedMode === 'ai') {
+                modal.remove();
+                this.launchGame(selectedMode);
+            }
+        };
 
-    modal.onclick = (e) => {
-      if (e.target === modal) modal.remove();
-    };
+        modal.onclick = (e) => {
+            if (e.target === modal) modal.remove();
+        };
 
-    confirmBtn.style.opacity = '0.5';
-  }
+        confirmBtn.style.opacity = '0.5';
+    }
 
-  async launchGame(mode = 'ai') {
-    const container = this.element.querySelector('#gameContainer');
+    async launchGame(mode = 'ai') {
+        const container = this.element.querySelector('#gameContainer');
 
-    const startScreen = container.querySelector('#startScreen');
+        const startScreen = container.querySelector('#startScreen');
 
-    if (this.gameName === 'slither') {
-      try {
-        const slitherModule = await import('../../../games/slither/index.js');
-        SlitherGame = slitherModule.SlitherGame;
+        if (this.gameName === 'slither') {
+            try {
+                const slitherModule = await import('../../../games/slither/index.js');
+                SlitherGame = slitherModule.SlitherGame;
 
-        container.innerHTML = '';
-        const phaserContainer = document.createElement('div');
-        phaserContainer.id = 'phaserContainer';
-        phaserContainer.style.cssText = 'flex: 1;';
-        container.appendChild(phaserContainer);
+                container.innerHTML = '';
+                const phaserContainer = document.createElement('div');
+                phaserContainer.id = 'phaserContainer';
+                phaserContainer.style.cssText = 'flex: 1;';
+                container.appendChild(phaserContainer);
 
-        this.game = new SlitherGame('phaserContainer');
-        this.game.launch();
-        this.gameStarted = true;
+                this.game = new SlitherGame('phaserContainer');
+                this.game.launch();
+                this.gameStarted = true;
 
-        // Wait a bit for the game to initialize, then access the Phaser game instance
-        setTimeout(() => {
-          if (this.game && this.game.game && this.game.game.events) {
-            // Listen for game over event (player died)
-            this.game.game.events.on('gameOver', (length) => {
-              this.showGameOverScreen(length, false);
-            });
+                // Wait a bit for the game to initialize, then access the Phaser game instance
+                setTimeout(() => {
+                    if (this.game && this.game.game && this.game.game.events) {
+                        // Listen for game over event (player died)
+                        this.game.game.events.on('gameOver', (length) => {
+                            this.showGameOverScreen(length, false);
+                        });
 
-            // Listen for game won event (player is last survivor)
-            this.game.game.events.on('gameWon', (length) => {
-              this.showGameOverScreen(length, true);
-            });
-          }
-        }, 100);
-      } catch (error) {
-        console.error('Error launching Slither game:', error);
-        container.innerHTML = `<div style="color: red; padding: 2rem;">Error loading game: ${error.message}</div>`;
-      }
-    } else {
-      container.innerHTML = `
+                        // Listen for game won event (player is last survivor)
+                        this.game.game.events.on('gameWon', (length) => {
+                            this.showGameOverScreen(length, true);
+                        });
+                    }
+                }, 100);
+            } catch (error) {
+                console.error('Error launching Slither game:', error);
+                container.innerHTML = `<div style="color: red; padding: 2rem;">Error loading game: ${error.message}</div>`;
+            }
+        } else if (this.gameName === 'flappy') {
+            try {
+                const flappyModule = await import('../../../games/flappy-bird/index.js');
+                FlappyBirdGame = flappyModule.FlappyBirdGame;
+
+                container.innerHTML = '';
+                const flappyContainer = document.createElement('div');
+                flappyContainer.id = 'flappyContainer';
+                flappyContainer.style.cssText = 'flex: 1; position: relative; width: 100%; height: 100%; overflow: hidden;';
+                container.appendChild(flappyContainer);
+
+                this.game = new FlappyBirdGame('flappyContainer');
+                this.game.launch();
+                this.gameStarted = true;
+            } catch (error) {
+                console.error('Error launching Flappy game:', error);
+                container.innerHTML = `<div style="color: red; padding: 2rem;">Error loading game: ${error.message}</div>`;
+            }
+        } else {
+            container.innerHTML = `
                 <div style="
                     flex: 1;
                     display: flex;
@@ -293,12 +312,12 @@ export class GameScreen {
                     </div>
                 </div>
             `;
+        }
     }
-  }
 
-  showGameOverScreen(length, isWinner) {
-    const modal = document.createElement('div');
-    modal.style.cssText = `
+    showGameOverScreen(length, isWinner) {
+        const modal = document.createElement('div');
+        modal.style.cssText = `
             position: fixed;
             top: 0;
             left: 0;
@@ -312,13 +331,13 @@ export class GameScreen {
             animation: fadeIn 0.3s ease-in;
         `;
 
-    const modalContent = document.createElement('div');
-    const borderColor = isWinner ? '#00ff88' : '#ff4444';
-    const titleColor = isWinner ? '#00ff88' : '#ff4444';
-    const emoji = isWinner ? '🏆' : '💀';
-    const title = isWinner ? 'Victory!' : 'Game Over!';
+        const modalContent = document.createElement('div');
+        const borderColor = isWinner ? '#00ff88' : '#ff4444';
+        const titleColor = isWinner ? '#00ff88' : '#ff4444';
+        const emoji = isWinner ? '🏆' : '💀';
+        const title = isWinner ? 'Victory!' : 'Game Over!';
 
-    modalContent.style.cssText = `
+        modalContent.style.cssText = `
             background: linear-gradient(135deg, #1a1a2e, #16213e);
             border: 3px solid ${borderColor};
             border-radius: 16px;
@@ -330,7 +349,7 @@ export class GameScreen {
             animation: slideIn 0.4s ease-out;
         `;
 
-    modalContent.innerHTML = `
+        modalContent.innerHTML = `
             <div style="font-size: 5rem; margin-bottom: 1rem;">${emoji}</div>
             <h2 style="color: ${titleColor}; margin-bottom: 1rem; font-size: 2.5rem; text-shadow: 0 0 20px rgba(${isWinner ? '0, 255, 136' : '255, 68, 68'}, 0.5);">
                 ${title}
@@ -384,33 +403,33 @@ export class GameScreen {
             </style>
         `;
 
-    modal.appendChild(modalContent);
-    document.body.appendChild(modal);
+        modal.appendChild(modalContent);
+        document.body.appendChild(modal);
 
-    modalContent.querySelector('#playAgainBtn').onclick = () => {
-      modal.remove();
-      this.cleanup();
-      this.showGameModeModal();
-    };
+        modalContent.querySelector('#playAgainBtn').onclick = () => {
+            modal.remove();
+            this.cleanup();
+            this.showGameModeModal();
+        };
 
-    modalContent.querySelector('#backToLobbyBtn').onclick = () => {
-      modal.remove();
-      const container = this.element.querySelector('#gameContainer');
+        modalContent.querySelector('#backToLobbyBtn').onclick = () => {
+            modal.remove();
+            const container = this.element.querySelector('#gameContainer');
 
-      const startScreen = container.querySelector('#startScreen');
-      if (startScreen) {
-        startScreen.add();
-      }
-    };
-  }
+            const startScreen = container.querySelector('#startScreen');
+            if (startScreen) {
+                startScreen.add();
+            }
+        };
+    }
 
-  goBack() {
-    this.cleanup();
-    router.navigateTo('lobby');
-  }
+    goBack() {
+        this.cleanup();
+        router.navigateTo('lobby');
+    }
 
-  showSettings() {
-    this.showModal('Game Settings', `
+    showSettings() {
+        this.showModal('Game Settings', `
             <div style="display: flex; flex-direction: column; gap: 1.5rem;">
                 <div>
                     <label style="color: #00d4ff; font-weight: 600; display: block; margin-bottom: 0.5rem;">
@@ -438,11 +457,11 @@ export class GameScreen {
                 </div>
             </div>
         `);
-  }
+    }
 
-  showModal(title, content) {
-    const modal = document.createElement('div');
-    modal.style.cssText = `
+    showModal(title, content) {
+        const modal = document.createElement('div');
+        modal.style.cssText = `
             position: fixed;
             top: 0;
             left: 0;
@@ -455,8 +474,8 @@ export class GameScreen {
             z-index: 9999;
         `;
 
-    const modalContent = document.createElement('div');
-    modalContent.style.cssText = `
+        const modalContent = document.createElement('div');
+        modalContent.style.cssText = `
             background: linear-gradient(135deg, #1a1a2e, #16213e);
             border: 2px solid #00d4ff;
             border-radius: 12px;
@@ -466,7 +485,7 @@ export class GameScreen {
             box-shadow: 0 20px 60px rgba(0, 212, 255, 0.3);
         `;
 
-    modalContent.innerHTML = `
+        modalContent.innerHTML = `
             <h2 style="color: #00d4ff; margin-bottom: 1.5rem; font-size: 1.5rem;">
                 ${title}
             </h2>
@@ -489,19 +508,19 @@ export class GameScreen {
             </div>
         `;
 
-    modal.appendChild(modalContent);
-    document.body.appendChild(modal);
+        modal.appendChild(modalContent);
+        document.body.appendChild(modal);
 
-    const closeBtn = modalContent.querySelector('#closeBtn');
-    closeBtn.onclick = () => modal.remove();
-    modal.onclick = (e) => {
-      if (e.target === modal) modal.remove();
-    };
-  }
-
-  cleanup() {
-    if (this.game) {
-      this.game.stop();
+        const closeBtn = modalContent.querySelector('#closeBtn');
+        closeBtn.onclick = () => modal.remove();
+        modal.onclick = (e) => {
+            if (e.target === modal) modal.remove();
+        };
     }
-  }
+
+    cleanup() {
+        if (this.game) {
+            this.game.stop();
+        }
+    }
 }
