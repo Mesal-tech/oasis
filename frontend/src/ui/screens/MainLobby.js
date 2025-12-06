@@ -1,7 +1,7 @@
 // ===== frontend/src/ui/screens/MainLobby/MainLobby.js =====
 import { createElement, createIcons, User, Sparkles, ChevronDown, LogOut, Settings, Wallet } from 'lucide';
-import { router } from '../../../router.js';
-import GAMES from '../../../config/games.js';
+import { router } from '../../router.js';
+import GAMES from '../../config/games.js';
 
 createIcons({
   icons: {

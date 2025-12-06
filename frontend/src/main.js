@@ -1,8 +1,7 @@
 import { router } from './router.js';
 import { Sidebar } from './ui/components/Sidebar.js';
-import { MainLobby } from './ui/screens/MainLobby/MainLobby.js';
-import { GameScreen } from './ui/screens/GameLobby/GameLobby.js';
-import { DashboardScreen } from './ui/screens/Dashboard.js';
+import { MainLobby } from './ui/screens/MainLobby.js';
+import { GameScreen } from './ui/screens/GameLobby.js';
 import { LeaderboardScreen } from './ui/screens/Leaderboard.js';
 import { MarketplaceScreen } from './ui/screens/Marketplace.js';
 import { RewardsScreen } from './ui/screens/Rewards.js';
@@ -12,7 +11,7 @@ const app = document.getElementById('app');
 
 // ---- Sidebar ----
 const sidebar = new Sidebar();
-app.appendChild(sidebar.render()); 
+app.appendChild(sidebar.render());
 
 const screensContainer = document.createElement('div');
 screensContainer.id = 'screensContainer';

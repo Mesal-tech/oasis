@@ -4,7 +4,6 @@ import { SlitherConfig } from './config.js';
 import { BootScene } from './scenes/Boot.js';
 import { PreloaderScene } from './scenes/Preloader.js';
 import { GameScene } from './scenes/Game.js';
-import { UIScene } from './scenes/UI.js';
 
 export class SlitherGame {
   constructor(containerId) {
@@ -14,7 +13,7 @@ export class SlitherGame {
 
   launch() {
     const config = SlitherConfig.getConfig(this.containerId);
-    config.scene = [BootScene, PreloaderScene, GameScene, UIScene];
+    config.scene = [BootScene, PreloaderScene, GameScene];
     this.game = new Phaser.Game(config);
     return this.game;
   }

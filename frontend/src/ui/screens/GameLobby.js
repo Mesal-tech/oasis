@@ -1,8 +1,7 @@
 // ===== frontend/src/ui/screens/GameLobby/GameLobby.js =====
-import { router } from '../../../router.js';
-import { userStore } from '../../../state/userStore.js';
-import GAMES from '../../../config/games.js';
-import "./GameLobby.css"
+import { router } from '../../router.js';
+import { userStore } from '../../state/userStore.js';
+import GAMES from '../../config/games.js';
 let SlitherGame;
 let FlappyBirdGame;
 
@@ -242,7 +241,7 @@ export class GameScreen {
 
         if (this.gameName === 'slither') {
             try {
-                const slitherModule = await import('../../../games/slither/index.js');
+                const slitherModule = await import('../../games/slither/index.js');
                 SlitherGame = slitherModule.SlitherGame;
 
                 container.innerHTML = '';
@@ -275,7 +274,7 @@ export class GameScreen {
             }
         } else if (this.gameName === 'flappy') {
             try {
-                const flappyModule = await import('../../../games/flappy-bird/index.js');
+                const flappyModule = await import('../../games/flappy-bird/index.js');
                 FlappyBirdGame = flappyModule.FlappyBirdGame;
 
                 container.innerHTML = '';

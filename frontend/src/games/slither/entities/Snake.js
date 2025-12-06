@@ -213,9 +213,12 @@ export default class Snake {
     const Pellet = this.scene.sys.game.registry.get('PelletClass');
 
     if (Pellet) {
+      // Change 'small' to 'medium' for better visibility and easier collection
       const pellet = new Pellet(this.scene, tail.x, tail.y, 'small');
-      if (this.scene.addBoostPellet) {
-        this.scene.addBoostPellet(pellet);
+
+      // Add directly to the scene's foods array
+      if (this.scene.foods) {
+        this.scene.foods.push(pellet);
       }
     }
   }

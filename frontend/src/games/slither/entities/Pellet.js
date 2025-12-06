@@ -8,9 +8,9 @@ export default class Pellet {
 
     // Size variants: small (0.5x), medium (1x), large (2x) relative to snake head
     const sizeConfig = {
-      small: { scale: 0.35, growAmount: 0.5, radius: 20 },
-      medium: { scale: 0.7, growAmount: 1, radius: 30 },
-      large: { scale: 1.4, growAmount: 3, radius: 45 }
+      small: { scale: 1, growAmount: 0.5, radius: 25 },
+      medium: { scale: 1.5, growAmount: 1, radius: 35 },
+      large: { scale: 2.3, growAmount: 3, radius: 55 }
     };
 
     this.config = sizeConfig[size] || sizeConfig.medium;
@@ -20,66 +20,121 @@ export default class Pellet {
     this.container = scene.add.container(x, y);
     this.container.setDepth(5);
 
-    // Background hex layer
-    this.hexSprite = scene.add.image(0, 0, 'circle');
-    this.hexSprite.setScale(this.config.scale);
-
-    // Foreground food layer (slightly smaller for border effect)
-    this.foodSprite = scene.add.image(0, 0, 'food');
-    this.foodSprite.setScale(this.config.scale * 0.85);
-
-    // Add both to container
-    this.container.add([this.hexSprite, this.foodSprite]);
-
-    // Color selection
+    // Color selection first
+    let selectedColor;
     if (color) {
-      this.foodSprite.setTint(color);
-      // Hex gets a slightly darker version
-      this.hexSprite.setTint(this.darkenColor(color));
+      selectedColor = color;
     } else {
       // Random tint for variety
       const colors = [0xff6b9d, 0x6bddff, 0xffe66b, 0x9dff6b, 0xff6bff];
-      const selectedColor = Phaser.Utils.Array.GetRandom(colors);
-      this.foodSprite.setTint(selectedColor);
-      this.hexSprite.setTint(this.darkenColor(selectedColor));
+      selectedColor = Phaser.Utils.Array.GetRandom(colors);
     }
 
-    // Pulse animation on container
-    const pulseScale = 1.15;
+    // OUTER GLOW LAYERS (3 layers for soft glow effect)
+    this.glowLayers = [];
+
+    for (let i = 3; i >= 1; i--) {
+      const glowLayer = scene.add.image(0, 0, 'food');
+      const glowScale = this.config.scale * (0.65 + i * 0.3);
+      glowLayer.setScale(glowScale);
+      glowLayer.setTint(selectedColor);
+      glowLayer.setAlpha(0.05 * i); // Outer layers more transparent
+      glowLayer.setBlendMode(Phaser.BlendModes.SUB); // Additive blending for glow
+      this.container.add(glowLayer);
+      this.glowLayers.push(glowLayer);
+    }
+
+    // Foreground food layer (main pellet)
+    this.foodSprite = scene.add.image(0, 0, 'food');
+    this.foodSprite.setScale(this.config.scale * 0.85);
+    this.foodSprite.setTint(selectedColor);
+    this.container.add(this.foodSprite);
+
+    // FLOATING ANIMATION - gentle up and down motion
+    const floatDistance = Phaser.Math.Between(8, 15); // Random float distance
+    const floatDuration = Phaser.Math.Between(1500, 2500); // Random speed
+    const floatDelay = Phaser.Math.Between(0, 1000); // Stagger the start
+
     scene.tweens.add({
       targets: this.container,
-      scaleX: pulseScale,
-      scaleY: pulseScale,
+      y: y + floatDistance,
+      duration: floatDuration,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+      delay: floatDelay
+    });
+
+    // SLIGHT HORIZONTAL DRIFT for more natural floating
+    const driftDistance = Phaser.Math.Between(5, 10);
+    const driftDuration = Phaser.Math.Between(2000, 3500);
+    const driftDelay = Phaser.Math.Between(0, 1500);
+
+    scene.tweens.add({
+      targets: this.container,
+      x: x + driftDistance,
+      duration: driftDuration,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+      delay: driftDelay
+    });
+
+    // Pulse animation (existing)
+    const pulseScale = 1.1;
+    scene.tweens.add({
+      targets: this.foodSprite,
+      scaleX: (this.config.scale * 0.85) * pulseScale,
+      scaleY: (this.config.scale * 0.5) * pulseScale,
       duration: 800,
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut'
     });
 
-    // Rotate hex slowly for visual interest
+    // GLOW PULSE - make the glow layers pulse
+    this.glowLayers.forEach((glowLayer, index) => {
+      const baseScale = this.config.scale * (0.85 + (3 - index) * 0.3);
+      scene.tweens.add({
+        targets: glowLayer,
+        scaleX: baseScale * 1.2,
+        scaleY: baseScale * 1.2,
+        alpha: 0.3,
+        duration: 800,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+        delay: index * 100 // Stagger the glow layers
+      });
+    });
+
+    // BLINKING EFFECT - periodic brightness increase
+    const blinkDelay = Phaser.Math.Between(0, 2000);
     scene.tweens.add({
-      targets: this.hexSprite,
-      angle: 360,
-      duration: 4000,
+      targets: [this.foodSprite, ...this.glowLayers],
+      alpha: 0.3, // Increase brightness
+      duration: 300,
+      yoyo: true,
       repeat: -1,
-      ease: 'Linear'
+      ease: 'Sine.easeInOut',
+      delay: blinkDelay,
+      repeatDelay: Phaser.Math.Between(1500, 3000) // Random blink interval
+    });
+
+    // SLIGHT ROTATION for extra floating effect
+    const rotationAmount = Phaser.Math.Between(-5, 5);
+    const rotationDuration = Phaser.Math.Between(3000, 5000);
+
+    scene.tweens.add({
+      targets: this.container,
+      angle: rotationAmount,
+      duration: rotationDuration,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
     });
 
     this.collectRadius = this.config.radius;
-  }
-
-  // Darken a color by reducing RGB values
-  darkenColor(color) {
-    const r = (color >> 16) & 0xff;
-    const g = (color >> 8) & 0xff;
-    const b = color & 0xff;
-
-    const darkenFactor = 0.6;
-    const newR = Math.floor(r * darkenFactor);
-    const newG = Math.floor(g * darkenFactor);
-    const newB = Math.floor(b * darkenFactor);
-
-    return (newR << 16) | (newG << 8) | newB;
   }
 
   update(snakeHead) {
@@ -124,9 +179,9 @@ export default class Pellet {
     const rand = Math.random();
     let size;
 
-    if (rand < 0.9) {
+    if (rand < 0.6) {
       size = 'small';
-    } else if (rand < 2.4) {
+    } else if (rand < 0.9) {
       size = 'medium';
     } else {
       size = 'large';

@@ -2,6 +2,7 @@
 import Phaser from 'phaser';
 import Snake from '../entities/Snake.js';
 import Pellet from '../entities/Pellet.js';
+import UI from './UI.js';
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -19,6 +20,11 @@ export class GameScene extends Phaser.Scene {
     this.load.image('hex', '/assets/slither/hex.png');
     this.load.image('tile', '/assets/slither/tile.png');
     this.load.image('white-shadow', '/assets/slither/white-shadow.png');
+
+    this.load.audio('bgm', [
+      '/assets/slither/audio/bgm.mp3',
+      '/assets/slither/audio/bgm.ogg'
+    ]);
   }
 
   create() {
@@ -71,23 +77,56 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor('#0a0a1f');
     this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
 
+    // === UI SETUP ===
+    this.ui = new UI(this);
+
     // === BOT SNAKES ===
     const skins = ['default', 'fire', 'galaxy', 'gold'];
+    const minDistanceFromEdge = 400; // Minimum distance from arena edge
+    const minDistanceFromOthers = 300; // Minimum distance from other snakes
+    const maxSpawnAttempts = 50; // Maximum attempts to find valid spawn position
+
     for (let i = 0; i < 20; i++) {
-      // Spawn bots randomly within arena
-      const angle = Math.random() * Math.PI * 2;
-      const distance = Math.random() * (this.arenaRadius - 200);
-      const botX = this.arenaCenterX + Math.cos(angle) * distance;
-      const botY = this.arenaCenterY + Math.sin(angle) * distance;
+      let botX, botY;
+      let validPosition = false;
+      let attempts = 0;
 
-      const bot = new Snake(
-        this,
-        botX,
-        botY,
-        skins[i % skins.length]
-      );
+      // Keep trying to find a valid spawn position
+      while (!validPosition && attempts < maxSpawnAttempts) {
+        attempts++;
 
-      this.snakes.push(bot);
+        // Generate random position within safe zone (away from edge)
+        const angle = Math.random() * Math.PI * 2;
+        const maxDistance = this.arenaRadius - minDistanceFromEdge;
+        const distance = Math.random() * maxDistance;
+
+        botX = this.arenaCenterX + Math.cos(angle) * distance;
+        botY = this.arenaCenterY + Math.sin(angle) * distance;
+
+        // Check distance from all existing snakes
+        validPosition = true;
+        for (const existingSnake of this.snakes) {
+          const head = existingSnake.segments[0];
+          const dist = Math.hypot(botX - head.x, botY - head.y);
+
+          if (dist < minDistanceFromOthers) {
+            validPosition = false;
+            break;
+          }
+        }
+      }
+
+      // If we found a valid position (or exhausted attempts), spawn the bot
+      if (validPosition) {
+        const bot = new Snake(
+          this,
+          botX,
+          botY,
+          skins[i % skins.length]
+        );
+
+        this.snakes.push(bot);
+      }
     }
 
     // === FOOD (PELLETS) ===
@@ -101,38 +140,83 @@ export class GameScene extends Phaser.Scene {
       callbackScope: this,
       loop: true
     });
+
+    this.sound.add('bgm', {
+      loop: true,
+      volume: 0.5
+    }).play();
+
+    // Optional: nice fade-in (feels more polished)
+    this.tweens.add({
+      targets: this.sound.get('bgm'),
+      volume: 0.5,
+      duration: 4000,
+      ease: 'Linear'
+    });
   }
 
   // Spawn initial food distribution
   spawnInitialFood() {
-    for (let i = 0; i < this.targetFoodCount; i++) {
-      this.spawnPelletInArena();
+    const numberOfClusters = 60; // Number of clusters to spawn
+    const pelletsPerCluster = Phaser.Math.Between(5, 10); // Pellets per cluster
+
+    for (let i = 0; i < numberOfClusters; i++) {
+      // Random cluster center position within arena
+      const angle = Math.random() * Math.PI * 2;
+      const distance = Math.random() * (this.arenaRadius - 200);
+      const clusterX = this.arenaCenterX + Math.cos(angle) * distance;
+      const clusterY = this.arenaCenterY + Math.sin(angle) * distance;
+
+      // Spawn pellets around this cluster center
+      this.spawnCluster(clusterX, clusterY, pelletsPerCluster);
+    }
+  }
+
+  spawnCluster(centerX, centerY, count) {
+    const clusterRadius = Phaser.Math.Between(80, 150); // Size of cluster spread
+
+    for (let i = 0; i < count; i++) {
+      // Random position within cluster using circular distribution
+      const angle = Math.random() * Math.PI * 2;
+      const distance = Math.random() * clusterRadius;
+
+      const x = centerX + Math.cos(angle) * distance;
+      const y = centerY + Math.sin(angle) * distance;
+
+      // Make sure it's within arena bounds
+      if (this.isWithinArena(x, y)) {
+        const pellet = Pellet.createRandom(this, x, y);
+        this.foods.push(pellet);
+      }
     }
   }
 
   // Spawn a single pellet randomly within the arena
+  maintainFoodSupply() {
+    const currentFoodCount = this.foods.filter(f => !f.destroyed).length;
+    const deficit = this.targetFoodCount - currentFoodCount;
+
+    if (deficit > 20) {
+      // Spawn a new cluster when food is low
+      const angle = Math.random() * Math.PI * 2;
+      const distance = Math.random() * (this.arenaRadius - 200);
+      const clusterX = this.arenaCenterX + Math.cos(angle) * distance;
+      const clusterY = this.arenaCenterY + Math.sin(angle) * distance;
+
+      const pelletsToSpawn = Math.min(Phaser.Math.Between(5, 12), deficit);
+      this.spawnCluster(clusterX, clusterY, pelletsToSpawn);
+    }
+  }
+
+  // Replace spawnPelletInArena with this (still useful for boost pellets):
   spawnPelletInArena() {
     const angle = Math.random() * Math.PI * 2;
     const distance = Math.random() * (this.arenaRadius - 100);
     const x = this.arenaCenterX + Math.cos(angle) * distance;
     const y = this.arenaCenterY + Math.sin(angle) * distance;
 
-    const pellet = new Pellet(this, x, y);
+    const pellet = Pellet.createRandom(this, x, y);
     this.foods.push(pellet);
-  }
-
-  // Maintain constant food supply
-  maintainFoodSupply() {
-    const currentFoodCount = this.foods.filter(f => !f.destroyed).length;
-    const deficit = this.targetFoodCount - currentFoodCount;
-
-    if (deficit > 0) {
-      // Spawn 1-3 pellets at a time to smooth out spawning
-      const spawnCount = Math.min(3, deficit);
-      for (let i = 0; i < spawnCount; i++) {
-        this.spawnPelletInArena();
-      }
-    }
   }
 
   // Check if position is within arena boundary
@@ -297,5 +381,10 @@ export class GameScene extends Phaser.Scene {
 
     // 7. CLEAN UP DEAD SNAKES
     this.snakes = this.snakes.filter(s => !s.isDead);
+
+    // 8. UPDATE UI
+    if (this.ui) {
+      this.ui.update();
+    }
   }
 }
