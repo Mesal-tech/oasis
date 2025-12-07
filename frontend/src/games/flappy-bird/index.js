@@ -31,6 +31,7 @@ export class FlappyBirdGame {
         // Audio
         this.flapSound = new Audio('/assets/flappy/sounds/sfx_flap.mp3');
         this.dieSound = new Audio('/assets/flappy/sounds/sfx_die.mp3');
+        this.pointSound = new Audio('/assets/flappy/sounds/sfx_point.mp3');
 
         this.animationFrameId = null;
         this.resizeHandler = this.resizeCanvas.bind(this);
@@ -112,7 +113,7 @@ export class FlappyBirdGame {
 
         this.pipes = Array(pipesNeeded)
             .fill()
-            .map((a, i) => [this.canvas.width + i * pipeSpacing, this.pipeLoc()]);
+            .map((a, i) => [this.canvas.width + i * pipeSpacing, this.pipeLoc(), false]);
 
         // Hide pause button on reset/setup
         const btn = document.getElementById('flappyPauseBtn');
@@ -176,15 +177,19 @@ export class FlappyBirdGame {
                     pipe[0], pipe[1] + this.pipeGap, this.pipeWidth, this.canvas.height - pipe[1] + this.pipeGap
                 );
 
-                // Give 1 point & create new pipe
-                if (pipe[0] <= -this.pipeWidth) {
+                // Give 1 point if passed
+                if (pipe[0] + this.pipeWidth < this.cTenth && !pipe[2]) {
                     this.currentScore++;
+                    if (!this.isMuted) this.pointSound.cloneNode(true).play().catch(e => console.log('Audio play failed', e));
                     this.bestScore = Math.max(this.bestScore, this.currentScore);
+                    pipe[2] = true;
+                }
 
-                    // Remove & create new pipe
+                // Remove & create new pipe
+                if (pipe[0] <= -this.pipeWidth) {
                     this.pipes = [
                         ...this.pipes.slice(1),
-                        [this.pipes[this.pipes.length - 1][0] + this.pipeGap + this.pipeWidth, this.pipeLoc()],
+                        [this.pipes[this.pipes.length - 1][0] + this.pipeGap + this.pipeWidth, this.pipeLoc(), false],
                     ];
                 }
 
@@ -233,12 +238,12 @@ export class FlappyBirdGame {
             this.ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
             this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-            this.ctx.font = "bold 40px 'Courier New', sans-serif";
+            this.ctx.font = "24px 'Press Start 2P', cursive";
             this.ctx.textAlign = "center"; // Center text
             this.ctx.fillStyle = "white";
             this.ctx.fillText("Flappy Bird", this.canvas.width / 2, this.canvas.height / 2 - 50);
 
-            this.ctx.font = "20px 'Courier New', sans-serif";
+            this.ctx.font = "12px 'Press Start 2P', cursive";
             const startText = window.innerWidth <= 768 ? "Click to Play" : "Click or Press Space to Play";
             this.ctx.fillText(startText, this.canvas.width / 2, this.canvas.height / 2 + 10);
 
@@ -258,7 +263,7 @@ export class FlappyBirdGame {
 
         // Create UI structure
         this.container.innerHTML = `
-            <div style="position: absolute; top: 20px; left: 20px; color: white; font-family: courier; z-index: 10;">
+            <div style="position: absolute; top: 20px; left: 20px; color: white; font-family: 'Press Start 2P', cursive; z-index: 10; font-size: 14px;">
                 <div id="flappyBestScore"></div>
                 <div id="flappyCurrentScore"></div>
             </div>
@@ -272,9 +277,9 @@ export class FlappyBirdGame {
 
             <!-- Pause Menu -->
             <div id="flappyPauseMenu" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 30; flex-direction: column; justify-content: center; align-items: center; gap: 20px;">
-                <h2 style="color: white; font-family: 'Courier New', sans-serif; font-size: 40px; margin: 0;">PAUSED</h2>
-                <button id="flappyResumeBtn" style="padding: 15px 30px; font-size: 20px; font-family: 'Courier New', sans-serif; cursor: pointer; background: #4EC0CA; border: none; color: white; border-radius: 5px;">RESUME</button>
-                <button id="flappyMuteBtn" style="padding: 15px 30px; font-size: 20px; font-family: 'Courier New', sans-serif; cursor: pointer; background: #fca048; border: none; color: white; border-radius: 5px;">Mute Sound</button>
+                <h2 style="color: white; font-family: 'Press Start 2P', cursive; font-size: 24px; margin: 0; text-align: center; line-height: 1.5;">PAUSED</h2>
+                <button id="flappyResumeBtn" style="padding: 15px 30px; font-size: 14px; font-family: 'Press Start 2P', cursive; cursor: pointer; background: #4EC0CA; border: none; color: white; border-radius: 5px;">RESUME</button>
+                <button id="flappyMuteBtn" style="padding: 15px 30px; font-size: 14px; font-family: 'Press Start 2P', cursive; cursor: pointer; background: #fca048; border: none; color: white; border-radius: 5px;">Mute Sound</button>
             </div>
 
             <canvas id="flappyCanvas" style="display: block; width: 100%; height: 100%;"></canvas>
