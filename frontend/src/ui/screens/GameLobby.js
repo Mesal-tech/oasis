@@ -35,41 +35,276 @@ export class GameScreen {
         const startScreen = document.createElement('div');
         startScreen.id = 'startScreen';
         startScreen.style.cssText = `
-            height: 100dvh;
-            background: #141415;
-        `;
+        height: 100dvh;
+        background: #141415;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    `;
 
-        startScreen.innerHTML = `
-            <div class="relative h-full flex justify-between gap-2 items-start">
-              <div class="absolute top-0 left-0 w-full h-full">
-                <img src="/assets/slither-thumb.jpg" class="w-full h-full object-cover" />
-              </div>
-              <div style="text-align: center;">
-                  <h1 style="font-size: 3rem; color: #00d4ff; margin-bottom: 1rem; text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);">
-                      ${this.gameData.title}
-                  </h1>
-                  <p style="color: #888; font-size: 1.2rem; margin-bottom: 2rem;">
-                      ${this.gameData.description}
-                  </p>
-              </div>
-              <div class="min-w-2/3 aspect-video min-h-[15rem] rounded-[25px] bg-white/5"></div>
+        // === DATA ===
+        const maps = [
+            { id: 'classic', name: 'Classic Arena', preview: `/assets/slither-thumb.jpg` },
+            { id: 'neon', name: 'Neon Grid', preview: '/assets/flappy-thumb.jpg' },
+            { id: 'void', name: 'Void Zone', preview: '/assets/racing-thumb.jpg' },
+            { id: 'jungle', name: 'Toxic Jungle', preview: '/assets/stitch-bg.png' }
+        ];
 
-              <div class="absolute bottom-0 w-full p-4">
-                <div class="bg-gradient-to-t from-black to-transparent p-4 w-[15rem]">
-                  <div class="flex justify-between items-center">
-                    <div class="h-15 w-15 bg-white/5"></div>
-                    <div class="h-15 w-15 bg-white/5"></div>
-                    <div class="h-15 w-15 bg-white/5"></div>
-                  </div>
-                  <button id="startGameBtn" class="btn-primary w-full">
-                    🎮 Start Game
-                  </button>
+        const skills = [
+            { id: 'speed', name: 'Boost', icon: '⚡', color: 'from-yellow-500 to-orange-500', desc: '+50% speed for 6s' },
+            { id: 'shield', name: 'Shield', icon: '🛡️', color: 'from-blue-500 to-primary-500', desc: 'Block one hit' },
+            { id: 'ghost', name: 'Ghost', icon: '👻', color: 'from-purple-500 to-pink-500', desc: 'Pass through snakes 5s' },
+            { id: 'magnet', name: 'Magnet', icon: '🧲', color: 'from-green-500 to-teal-500', desc: 'Pull food toward you' },
+            { id: 'cut', name: 'Cut', icon: '✂️', color: 'from-red-500 to-rose-500', desc: 'Sever enemy tails' },
+            { id: 'freeze', name: 'Freeze', icon: '❄️', color: 'from-primary-400 to-blue-600', desc: 'Slow all enemies 4s' }
+        ];
+
+        let currentMapIndex = 0;
+        let selectedSkills = []; // max 3
+
+        // === UPDATE FUNCTIONS ===
+        const updateMapGrid = () => {
+            mapCards.forEach((card, index) => {
+                if (index === currentMapIndex) {
+                    card.classList.add('active');
+                    card.style.borderColor = 'rgba(223, 4, 10, 0.6)';
+                    card.style.transform = 'scale(1.05)';
+                    card.style.boxShadow = '0 0 5px #5d5c5cff';
+                } else {
+                    card.classList.remove('active');
+                    card.style.borderColor = '#333333';
+                    card.style.transform = 'scale(1)';
+                    card.style.boxShadow = 'none';
+                }
+            });
+        };
+
+        const updateSkillSlots = () => {
+            skillSlots.forEach((slot, i) => {
+                if (selectedSkills[i]) {
+                    const skill = skills.find(s => s.id === selectedSkills[i]);
+                    slot.innerHTML = `
+                    <div class="text-5xl">${skill.icon}</div>
+                    <div class="text-xs font-bold text-primary-400 mt-1">${skill.name}</div>
+                `;
+                    slot.classList.add('selected', 'border-primary-500', 'bg-primary-900/30');
+                    slot.classList.remove('border-[#353535');
+                } else {
+                    slot.innerHTML = `<div class="text-5xl text-white/70">?</div>`;
+                    slot.classList.remove('selected', 'border-primary-500', 'bg-primary-900/30');
+                    slot.classList.add('border-[#353535]');
+                }
+            });
+        };
+
+        const openSkillModal = (slotIndex) => {
+            const modal = document.createElement('div');
+            modal.style.cssText = `position:fixed;inset-0;background:rgba(0,0,0,0.95);z-index:99999;display:flex;align-items:center;justify-content:center;padding:1rem;`;
+
+            modal.innerHTML = `
+            <div class="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border-2 border-primary-500 rounded-2xl p-6 max-w-2xl w-full max-h-screen overflow-y-auto">
+                <h2 class="text-3xl font-bold text-primary-400 mb-6 text-center">Select Skill ${slotIndex + 1}</h2>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    ${skills.map(skill => {
+                const isSelected = selectedSkills.includes(skill.id);
+                const isInThisSlot = selectedSkills[slotIndex] === skill.id;
+                return `
+                            <div class="skill-card ${isSelected && !isInThisSlot ? 'opacity-50' : 'cursor-pointer hover:scale-105'} transition-all bg-gray-900/80 border-2 ${isInThisSlot ? 'border-primary-500 ring-4 ring-primary-500/50' : 'border-gray-700'} rounded-xl p-5 text-center"
+                                 data-id="${skill.id}">
+                                <div class="text-6xl mb-3">${skill.icon}</div>
+                                <div class="font-bold text-lg text-primary-400">${skill.name}</div>
+                                <div class="text-xs text-gray-400 mt-1">${skill.desc}</div>
+                            </div>
+                        `;
+            }).join('')}
                 </div>
-              </div>
+                <button id="closeSkillModal" class="mt-8 w-full py-4 bg-gradient-to-r from-primary-500 to-blue-600 text-white font-bold rounded-xl hover:from-primary-400 hover:to-blue-500 transition">
+                    Close
+                </button>
             </div>
         `;
 
-        startScreen.querySelector('#startGameBtn').onclick = () => this.showGameModeModal();
+            document.body.appendChild(modal);
+
+            modal.querySelectorAll('.skill-card').forEach(card => {
+                card.onclick = () => {
+                    const id = card.dataset.id;
+                    if (selectedSkills.includes(id) && selectedSkills[slotIndex] !== id) return; // already used elsewhere
+
+                    selectedSkills[slotIndex] = id;
+                    if (selectedSkills.length > 3) selectedSkills = selectedSkills.slice(0, 3);
+                    if (!selectedSkills.includes(id)) selectedSkills.push(id);
+
+                    modal.remove();
+                    updateSkillSlots();
+                };
+            });
+
+            modal.querySelector('#closeSkillModal').onclick = () => modal.remove();
+            modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+        };
+
+        // === HTML ===
+        startScreen.innerHTML = `
+        <!-- Background -->
+        <div class="absolute inset-0">
+            <img src="${this.gameData.thumbnail}" class="w-full h-full object-cover" />
+            <div class="absolute inset-0 bg-black/60"></div>
+        </div>
+
+        <!-- Top Bar -->
+        <div class="relative z-10 flex flex-col p-4 gap-4">
+            <div class="flex justify-between items-center">
+                <div class="flex gap-2 items-center">
+                    <button>Back icon</button>
+                    <h2>${this.gameData.title}</h2>
+                </div>
+
+                <div>
+                    Settings Icon
+                </div>
+            </div>
+
+            <div class="flex justify-between items-start">
+                <!-- Player -->
+                <div class="space-y-2">
+                    <div class="flex gap-2 items-center">
+                        <div class="h-16 w-16 rounded-xl bg-white/10"></div>
+                        <div>
+                            <h2>Best Score Ever</h2>
+                            <p>10,000</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 items-center">
+                        <div class="h-16 w-16 rounded-xl bg-white/10"></div>
+                        <div>
+                            <h2>Last Game</h2>
+                            <p>1,000</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 items-center p-2 rounded-xl bg-white/10">
+                        <div class="h-10 w-10 rounded-md bg-white/10"></div>
+                        <h2>Daily Login</h2>
+                    </div>
+                </div>
+
+                <div class="flex flex-col itmes-end space-y-2">
+                    <!-- Shop -->
+                    <button id="shopBtn" class="btn-primary font-bold">
+                        Shop
+                    </button>
+                    <div class="flex gap-2 items-center p-2 rounded-xl bg-white/10">
+                        <div class="h-10 w-10 rounded-md bg-white/10"></div>
+                        <h2>Missions</h2>
+                    </div>
+                    <div class="flex gap-2 items-center p-2 rounded-xl bg-white/10">
+                        <div class="h-10 w-10 rounded-md bg-white/10"></div>
+                        <h2>LeaderBoard</h2>
+                    </div>
+                    
+                    <div class="flex gap-2 items-center p-2 rounded-xl bg-white/10">
+                        <div class="h-10 w-10 rounded-md bg-white/10"></div>
+                        <h2>Inventory</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="relative z-10 flex justify-between items-end p-4 gap-4">
+            <div>
+                <!-- Selected Skills (3 slots) -->
+                <div class="mb-4">
+                    <div class="flex justify-center gap-2" id="skillSlots">
+                        <div class="skill-slot w-22 h-22 sm:w-18 sm:h-18 bg-[#171717] border-2 border-[#353535] rounded-md flex flex-col items-center justify-center cursor-pointer hover:border-white/80 transition">
+                            <div class="text-5xl text-white/70">?</div>
+                        </div>
+                        <div class="skill-slot w-22 h-22 sm:w-18 sm:h-18 bg-[#171717] border-2 border-[#353535] rounded-md flex flex-col items-center justify-center cursor-pointer hover:border-white/80 transition">
+                            <div class="text-5xl text-white/70">?</div>
+                       </div>
+                        <div class="skill-slot w-22 h-22 sm:w-18 sm:h-18 bg-[#171717] border-2 border-[#353535] rounded-md flex flex-col items-center justify-center cursor-pointer hover:border-white/80 transition">
+                            <div class="text-5xl text-white/70">?</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Start Button -->
+                <button id="startGameBtn" class="btn-primary w-full">
+                    🎮 Start Game
+                </button>
+            </div>
+
+            <!-- Map Grid -->
+            <div class="bg-[#171717] backdrop-blur-lg border-2 border-[#353535] rounded-xl p-4 shadow-2xl">
+                <h3 style="color: #ffffff; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem; text-align: center;">SELECT MAP</h3>
+                <div id="mapGrid" class="grid grid-cols-2 gap-3">
+                    ${maps.map((map, index) => `
+                        <div class="map-card cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-300" 
+                             data-index="${index}"
+                             style="border-color: #333333; width: 100px; height: 70px;">
+                            <div style="position: relative; width: 100%; height: 100%;">
+                                <img src="${map.preview}" style="width: 100%; height: 100%; object-fit: cover;" alt="${map.name}" />
+                                <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); display: flex; align-items: flex-end; padding: 0.5rem;">
+                                    <div style="font-size: 0.65rem; font-weight: 600; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${map.name}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+
+        // === DOM Elements ===
+        const shopBtn = startScreen.querySelector('#shopBtn');
+        const skillSlots = startScreen.querySelectorAll('.skill-slot');
+        const startGameBtn = startScreen.querySelector('#startGameBtn');
+        const mapCards = startScreen.querySelectorAll('.map-card');
+
+        // === Event Listeners ===
+        mapCards.forEach((card, index) => {
+            card.onclick = () => {
+                currentMapIndex = index;
+                updateMapGrid();
+            };
+
+            // Hover effects for non-active maps
+            card.onmouseover = () => {
+                if (index !== currentMapIndex) {
+                    card.style.transform = 'scale(1.02)';
+                    card.style.borderColor = '#555555';
+                }
+            };
+
+            card.onmouseout = () => {
+                if (index !== currentMapIndex) {
+                    card.style.transform = 'scale(1)';
+                    card.style.borderColor = '#333333';
+                }
+            };
+        });
+
+        shopBtn.onclick = () => {
+            this.showModal('Shop', `
+            <div class="text-center">
+                <p class="text-3xl mb-8">Coming Soon!</p>
+                <p class="text-gray-400">Skins, trails, emotes & more...</p>
+            </div>
+        `);
+        };
+
+        skillSlots.forEach((slot, i) => {
+            slot.onclick = () => openSkillModal(i);
+        });
+
+        startGameBtn.onclick = () => {
+            this.showGameModeModal();
+        };
+
+        // Init
+        updateMapGrid();
+        updateSkillSlots();
 
         return startScreen;
     }
@@ -91,24 +326,23 @@ export class GameScreen {
 
         const modalContent = document.createElement('div');
         modalContent.style.cssText = `
-            background: linear-gradient(135deg, #1a1a2e, #16213e);
-            border: 2px solid #00d4ff;
-            border-radius: 12px;
+            background: #171717;
+            border: 2px solid #333333;
+            border-radius: 25px;
             padding: 2.5rem;
             max-width: 600px;
             width: 90%;
-            box-shadow: 0 20px 60px rgba(0, 212, 255, 0.5);
         `;
 
         modalContent.innerHTML = `
-            <h2 style="color: #00d4ff; margin-bottom: 2rem; font-size: 2rem; text-align: center;">
+            <h2 style="color: #ffffff; margin-bottom: 2rem; font-size: 2rem; text-align: center;">
                 🎮 Select Game Mode
             </h2>
             <div style="display: flex; flex-direction: column; gap: 1.5rem; margin-bottom: 2rem;">
                 <div class="game-mode-option" data-mode="ai" style="
                     padding: 1.5rem;
-                    background: rgba(0, 212, 255, 0.1);
-                    border: 2px solid #00d4ff;
+                    background: #282828;
+                    border: 2px solid #333333;
                     border-radius: 8px;
                     cursor: pointer;
                     transition: all 0.3s;
@@ -116,7 +350,7 @@ export class GameScreen {
                     <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
                         <span style="font-size: 2rem;">🤖</span>
                         <div style="flex: 1;">
-                            <div style="font-size: 1.3rem; font-weight: bold; color: #00d4ff;">
+                            <div style="font-size: 1.3rem; font-weight: bold; color: #ffffff;">
                                 AI Mode
                             </div>
                             <div style="color: #888; font-size: 0.9rem;">
@@ -136,8 +370,8 @@ export class GameScreen {
                 
                 <div class="game-mode-option" data-mode="pvp" style="
                     padding: 1.5rem;
-                    background: rgba(100, 100, 100, 0.1);
-                    border: 2px solid #555;
+                    background: #282828;
+                    border: 2px solid #333333;
                     border-radius: 8px;
                     cursor: not-allowed;
                     opacity: 0.5;
@@ -165,29 +399,10 @@ export class GameScreen {
                 </div>
             </div>
             <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-                <button id="cancelBtn" style="
-                    padding: 0.8rem 2rem;
-                    background: transparent;
-                    border: 1px solid #ff4444;
-                    border-radius: 6px;
-                    color: #ff4444;
-                    cursor: pointer;
-                    font-weight: 600;
-                    transition: all 0.3s;
-                ">
+                <button id="cancelBtn" class="btn">
                     Cancel
                 </button>
-                <button id="confirmBtn" style="
-                    padding: 0.8rem 2rem;
-                    background: linear-gradient(135deg, #00d4ff, #0099cc);
-                    border: none;
-                    border-radius: 6px;
-                    color: white;
-                    cursor: pointer;
-                    font-weight: 600;
-                    transition: all 0.3s;
-                    box-shadow: 0 5px 15px rgba(0, 212, 255, 0.4);
-                " disabled>
+                <button id="confirmBtn" class="btn-primary" disabled>
                     Start Game
                 </button>
             </div>
@@ -236,8 +451,6 @@ export class GameScreen {
 
     async launchGame(mode = 'ai') {
         const container = this.element.querySelector('#gameContainer');
-
-        const startScreen = container.querySelector('#startScreen');
 
         if (this.gameName === 'slither') {
             try {
@@ -302,7 +515,7 @@ export class GameScreen {
                 ">
                     <div style="font-size: 4rem;">${this.gameData.icon}</div>
                     <div style="text-align: center;">
-                        <h2 style="font-size: 2rem; color: #00d4ff; margin-bottom: 1rem;">
+                        <h2 style="font-size: 2rem; color: #DF040A; margin-bottom: 1rem;">
                             ${this.gameData.title}
                         </h2>
                         <p style="color: #888; font-size: 1rem;">
@@ -331,19 +544,18 @@ export class GameScreen {
         `;
 
         const modalContent = document.createElement('div');
-        const borderColor = isWinner ? '#00ff88' : '#ff4444';
-        const titleColor = isWinner ? '#00ff88' : '#ff4444';
+        const borderColor = '#353535';
+        const titleColor = '#ffffff';
         const emoji = isWinner ? '🏆' : '💀';
         const title = isWinner ? 'Victory!' : 'Game Over!';
 
         modalContent.style.cssText = `
-            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            background: #171717;
             border: 3px solid ${borderColor};
-            border-radius: 16px;
+            border-radius: 25px;
             padding: 3rem;
             max-width: 500px;
             width: 90%;
-            box-shadow: 0 20px 60px rgba(${isWinner ? '0, 255, 136' : '255, 68, 68'}, 0.5);
             text-align: center;
             animation: slideIn 0.4s ease-out;
         `;
@@ -362,31 +574,10 @@ export class GameScreen {
             </div>
             ${isWinner ? '<div style="font-size: 1.2rem; color: #00ff88; margin-bottom: 2rem;">🎉 You are the last snake standing! 🎉</div>' : ''}
             <div style="display: flex; gap: 1rem; justify-content: center;">
-                <button id="playAgainBtn" style="
-                    padding: 1rem 2.5rem;
-                    background: linear-gradient(135deg, #00d4ff, #0099cc);
-                    border: none;
-                    border-radius: 8px;
-                    color: white;
-                    cursor: pointer;
-                    font-weight: 700;
-                    font-size: 1.1rem;
-                    transition: all 0.3s;
-                    box-shadow: 0 5px 15px rgba(0, 212, 255, 0.4);
-                ">
+                <button id="playAgainBtn" class="btn-primary">
                     🎮 Play Again
                 </button>
-                <button id="backToLobbyBtn" style="
-                    padding: 1rem 2.5rem;
-                    background: transparent;
-                    border: 2px solid #00d4ff;
-                    border-radius: 8px;
-                    color: #00d4ff;
-                    cursor: pointer;
-                    font-weight: 700;
-                    font-size: 1.1rem;
-                    transition: all 0.3s;
-                ">
+                <button id="backToLobbyBtn" class="btn">
                     ← Back to Lobby
                 </button>
             </div>
@@ -405,20 +596,15 @@ export class GameScreen {
         modal.appendChild(modalContent);
         document.body.appendChild(modal);
 
-        modalContent.querySelector('#playAgainBtn').onclick = () => {
-            modal.remove();
-            this.cleanup();
-            this.showGameModeModal();
-        };
-
         modalContent.querySelector('#backToLobbyBtn').onclick = () => {
             modal.remove();
-            const container = this.element.querySelector('#gameContainer');
+            this.resetToStartScreen();
+        };
 
-            const startScreen = container.querySelector('#startScreen');
-            if (startScreen) {
-                startScreen.add();
-            }
+        modalContent.querySelector('#playAgainBtn').onclick = () => {
+            modal.remove();
+            this.resetToStartScreen();
+            this.showGameModeModal();
         };
     }
 
@@ -475,33 +661,23 @@ export class GameScreen {
 
         const modalContent = document.createElement('div');
         modalContent.style.cssText = `
-            background: linear-gradient(135deg, #1a1a2e, #16213e);
-            border: 2px solid #00d4ff;
-            border-radius: 12px;
+            background: #171717;
+            border: 2px solid #333333;
+            border-radius: 25px;
             padding: 2rem;
             max-width: 500px;
             width: 90%;
-            box-shadow: 0 20px 60px rgba(0, 212, 255, 0.3);
         `;
 
         modalContent.innerHTML = `
-            <h2 style="color: #00d4ff; margin-bottom: 1.5rem; font-size: 1.5rem;">
+            <h2 style="color: #ffffff; margin-bottom: 1.5rem; font-size: 1.5rem;">
                 ${title}
             </h2>
             <div style="margin-bottom: 2rem;">
                 ${content}
             </div>
             <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-                <button id="closeBtn" style="
-                    padding: 0.7rem 1.5rem;
-                    background: transparent;
-                    border: 1px solid #00d4ff;
-                    border-radius: 6px;
-                    color: #00d4ff;
-                    cursor: pointer;
-                    font-weight: 600;
-                    transition: all 0.3s;
-                ">
+                <button id="closeBtn" class="btn">
                     Close
                 </button>
             </div>
@@ -515,6 +691,18 @@ export class GameScreen {
         modal.onclick = (e) => {
             if (e.target === modal) modal.remove();
         };
+    }
+
+    resetToStartScreen() {
+        this.cleanup();
+        this.gameStarted = false;
+
+        const gameContainer = this.element.querySelector('#gameContainer');
+        if (gameContainer) {
+            gameContainer.innerHTML = '';
+            const startScreen = this.createStartScreen();
+            gameContainer.appendChild(startScreen);
+        }
     }
 
     cleanup() {

@@ -71,6 +71,10 @@ body {
   @apply w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center font-bold text-white text-sm;
 }
 
+.btn {
+  @apply flex items-center justify-center gap-2 mt-4 bg-[#f3f3f3]/70 text-black font-semibold rounded-full p-4 py-2 border border-white/10 cursor-pointer active:scale-98 transition-all duration-300 transform hover:-translate-y-1;
+}
+
 .btn-primary {
   @apply flex items-center justify-center gap-2 mt-4 bg-[#DF040A]/70 font-semibold rounded-full p-4 py-2 border border-white/10 cursor-pointer active:scale-98 transition-all duration-300 transform hover:-translate-y-1;
 }

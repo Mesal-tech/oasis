@@ -12,7 +12,17 @@ export default class Snake {
     this.isDead = false;
 
     this.segments = [];
-    this.segmentSpacing = 12; // Reduced for smaller snake
+
+    // Scaling configuration
+    this.minLength = 5; // Initial/minimum number of segments
+    this.minScale = 0.3; // Scale at minimum length
+    this.maxScale = 0.65; // Maximum scale (won't grow fatter beyond this)
+    this.maxScaleLength = 100; // Length at which max scale is reached
+
+    // Dynamic segment spacing for flexibility
+    this.baseSegmentSpacing = 8;
+    this.minSegmentSpacing = 5; // More flexible when longer
+
     this.speed = 160;
     this.boostSpeed = 280;
     this.currentSpeed = this.speed;
@@ -23,19 +33,19 @@ export default class Snake {
     this.trail = [];
     this.maxTrailLength = 1000;
 
-    // Collision radius for head (smaller)
-    this.headRadius = 16;
-    this.bodyRadius = 14;
+    // Dynamic collision radius
+    this.baseHeadRadius = 16;
+    this.baseBodyRadius = 14;
 
     // Boost mechanics
     this.isBoosting = false;
     this.boostTrailTimer = 0;
-    this.boostTrailInterval = 100; // ms between pellet drops
+    this.boostTrailInterval = 100;
     this.lastBoostPelletTime = 0;
 
     // Double tap detection
     this.lastTapTime = 0;
-    this.doubleTapDelay = 300; // ms for double tap
+    this.doubleTapDelay = 300;
 
     this.skinColors = {
       default: 0x00ff88,
@@ -53,13 +63,44 @@ export default class Snake {
     }
   }
 
+  // Calculate current scale based on snake length
+  getCurrentScale() {
+    const length = this.segments.length;
+    if (length <= this.minLength) return this.minScale;
+    if (length >= this.maxScaleLength) return this.maxScale;
+
+    // Linear interpolation between min and max scale
+    const progress = (length - this.minLength) / (this.maxScaleLength - this.minLength);
+    return this.minScale + (this.maxScale - this.minScale) * progress;
+  }
+
+  // Calculate segment spacing based on length (more flexible when longer)
+  getSegmentSpacing() {
+    const length = this.segments.length;
+    if (length <= this.minLength) return this.baseSegmentSpacing;
+
+    // Gradually reduce spacing as snake grows for better flexibility
+    const progress = Math.min((length - this.minLength) / 50, 1);
+    return this.baseSegmentSpacing - (this.baseSegmentSpacing - this.minSegmentSpacing) * progress;
+  }
+
+  // Get collision radii based on current scale
+  getCollisionRadii() {
+    const scale = this.getCurrentScale();
+    return {
+      head: this.baseHeadRadius * (scale / this.minScale),
+      body: this.baseBodyRadius * (scale / this.minScale)
+    };
+  }
+
   createSnake() {
     const baseColor = this.skinColors[this.skin] || 0x00ff88;
+    const scale = this.getCurrentScale();
 
-    // HEAD (using circle.png asset) - smaller size
+    // HEAD
     const head = this.scene.add.image(this.x, this.y, 'circle');
     head.setTint(baseColor);
-    head.setScale(0.5); // Reduced from 0.7
+    head.setScale(scale);
     head.setDepth(100);
     head.snake = this;
 
@@ -67,21 +108,22 @@ export default class Snake {
     this.trail.push({ x: this.x, y: this.y });
 
     // BODY SEGMENTS
-    const segmentCount = 14;
+    const segmentCount = this.minLength - 1;
+    const spacing = this.getSegmentSpacing();
 
     for (let i = 1; i <= segmentCount; i++) {
       const seg = this.scene.add.image(
-        this.x - i * this.segmentSpacing,
+        this.x - i * spacing,
         this.y,
         'circle'
       );
 
       seg.setTint(baseColor);
-      seg.setScale(0.48); // Reduced from 0.68
+      seg.setScale(scale * 0.98); // Slightly smaller than head
       seg.setDepth(100 - i);
 
       this.segments.push(seg);
-      this.trail.push({ x: this.x - i * this.segmentSpacing, y: this.y });
+      this.trail.push({ x: this.x - i * spacing, y: this.y });
     }
   }
 
@@ -101,7 +143,6 @@ export default class Snake {
       const timeSinceLastTap = currentTime - this.lastTapTime;
 
       if (timeSinceLastTap < this.doubleTapDelay) {
-        // Double tap detected
         this.startBoost();
       }
 
@@ -110,7 +151,7 @@ export default class Snake {
 
     this.scene.input.on('pointerup', () => this.endBoost());
 
-    // Space key for boost (double tap)
+    // Space key for boost
     const space = this.scene.input.keyboard.addKey('SPACE');
     let spaceLastPress = 0;
 
@@ -121,7 +162,6 @@ export default class Snake {
       const timeSinceLastPress = currentTime - spaceLastPress;
 
       if (timeSinceLastPress < this.doubleTapDelay) {
-        // Double press detected
         this.startBoost();
       }
 
@@ -132,7 +172,8 @@ export default class Snake {
   }
 
   startBoost() {
-    if (this.isDead || this.segments.length <= 5) return; // Need minimum length to boost
+    // Can only boost if longer than initial length
+    if (this.isDead || this.segments.length <= this.minLength) return;
     this.currentSpeed = this.boostSpeed;
     this.isBoosting = true;
   }
@@ -150,9 +191,17 @@ export default class Snake {
       this.lastBoostPelletTime += delta;
 
       if (this.lastBoostPelletTime >= this.boostTrailInterval) {
-        this.dropBoostPellet();
-        this.shrink(0.5); // Lose length while boosting
+        // Drop pellet and shrink proportionally
+        const shrinkAmount = this.dropBoostPellet();
+        if (shrinkAmount > 0) {
+          this.shrink(shrinkAmount);
+        }
         this.lastBoostPelletTime = 0;
+
+        // Auto-stop boost if we reach minimum length
+        if (this.segments.length <= this.minLength) {
+          this.endBoost();
+        }
       }
     }
 
@@ -173,9 +222,19 @@ export default class Snake {
       this.trail.pop();
     }
 
+    // Get current spacing and scale
+    const spacing = this.getSegmentSpacing();
+    const scale = this.getCurrentScale();
+
+    // Update all segment scales
+    this.segments.forEach((seg, i) => {
+      const segScale = i === 0 ? scale : scale * 0.98;
+      seg.setScale(segScale);
+    });
+
     // Position each segment along the trail at fixed intervals
     for (let i = 1; i < this.segments.length; i++) {
-      const targetDistance = i * this.segmentSpacing;
+      const targetDistance = i * spacing;
 
       // Find position along trail
       let accumulatedDistance = 0;
@@ -199,63 +258,84 @@ export default class Snake {
       }
     }
 
-    this.eyes.update();
+    this.eyes.update(scale);
   }
 
-  // Drop a small pellet while boosting
   dropBoostPellet() {
-    if (this.segments.length <= 5) {
+    if (this.segments.length <= this.minLength) {
       this.endBoost();
-      return;
+      return 0;
     }
 
     const tail = this.segments[this.segments.length - 1];
     const Pellet = this.scene.sys.game.registry.get('PelletClass');
 
     if (Pellet) {
-      // Change 'small' to 'medium' for better visibility and easier collection
+      // Always drop small pellets while boosting
       const pellet = new Pellet(this.scene, tail.x, tail.y, 'small');
 
-      // Add directly to the scene's foods array
       if (this.scene.foods) {
         this.scene.foods.push(pellet);
       }
+
+      // Gradual shrink - lose 0.3 segments per small pellet dropped
+      return 0.3;
     }
+
+    return 0;
   }
 
-  // Shrink snake (lose segments)
   shrink(amount = 1) {
-    const wholeSegments = Math.floor(amount);
+    // Calculate how many segments to remove
+    const segmentsToRemove = Math.floor(amount);
+    const partialSegment = amount - segmentsToRemove;
 
-    for (let i = 0; i < wholeSegments; i++) {
-      if (this.segments.length <= 5) break; // Keep minimum length
+    // Remove whole segments
+    for (let i = 0; i < segmentsToRemove; i++) {
+      if (this.segments.length <= this.minLength) break;
 
       const segment = this.segments.pop();
       if (segment) {
         segment.destroy();
       }
     }
+
+    // Handle partial segment removal by accumulating
+    if (!this.partialShrinkAccumulator) {
+      this.partialShrinkAccumulator = 0;
+    }
+
+    this.partialShrinkAccumulator += partialSegment;
+
+    // When accumulated partial reaches 1, remove a segment
+    if (this.partialShrinkAccumulator >= 1 && this.segments.length > this.minLength) {
+      const segment = this.segments.pop();
+      if (segment) {
+        segment.destroy();
+      }
+      this.partialShrinkAccumulator -= 1;
+    }
   }
 
-  // Check collision with another snake's body
   checkCollisionWith(otherSnake) {
     if (this.isDead || otherSnake.isDead) return false;
 
     const head = this.segments[0];
+    const radii = this.getCollisionRadii();
+    const otherRadii = otherSnake.getCollisionRadii();
 
-    // Check against all segments of the other snake (skip head to head for now)
     for (let i = 0; i < otherSnake.segments.length; i++) {
       const segment = otherSnake.segments[i];
       const distance = Math.hypot(head.x - segment.x, head.y - segment.y);
 
-      // If this is the other snake's head, use head-to-head collision
       if (i === 0) {
-        if (distance < this.headRadius + otherSnake.headRadius - 10) {
+        // Head-to-head collision
+        if (distance < radii.head + otherRadii.head - 10) {
           return true;
         }
       } else {
         // Body collision
-        if (distance < this.headRadius + otherSnake.bodyRadius - 8) {
+        if (distance < radii.head + otherRadii.body - 8) {
           return true;
         }
       }
@@ -264,7 +344,6 @@ export default class Snake {
     return false;
   }
 
-  // Find nearest threat (another snake's body)
   findNearestThreat(allSnakes) {
     const head = this.segments[0];
     let nearestDist = Infinity;
@@ -276,12 +355,10 @@ export default class Snake {
     allSnakes.forEach(snake => {
       if (snake === this || snake.isDead) return;
 
-      // Check each segment of other snakes
       snake.segments.forEach((seg, i) => {
         const dist = Math.hypot(head.x - seg.x, head.y - seg.y);
 
-        if (dist < 200) { // Larger threat detection radius
-          // Weight closer threats more heavily
+        if (dist < 200) {
           const weight = 1 / (dist + 1);
           threatX += seg.x * weight;
           threatY += seg.y * weight;
@@ -294,7 +371,6 @@ export default class Snake {
       });
     });
 
-    // Calculate average threat direction weighted by proximity
     if (threatCount > 0) {
       threatX /= threatCount;
       threatY /= threatCount;
@@ -304,7 +380,6 @@ export default class Snake {
     return { distance: nearestDist, angle: nearestAngle, intensity: threatCount };
   }
 
-  // Find nearest food
   findNearestFood(foods) {
     const head = this.segments[0];
     let nearestDist = Infinity;
@@ -314,7 +389,7 @@ export default class Snake {
       if (food.destroyed || !food.container) return;
       const dist = Math.hypot(head.x - food.container.x, head.y - food.container.y);
 
-      if (dist < 300 && dist < nearestDist) { // Food detection radius
+      if (dist < 300 && dist < nearestDist) {
         nearestDist = dist;
         nearestAngle = Math.atan2(food.container.y - head.y, food.container.x - head.x);
       }
@@ -325,13 +400,15 @@ export default class Snake {
 
   grow(amount = 3) {
     const baseColor = this.skinColors[this.skin] || 0x00ff88;
+    const scale = this.getCurrentScale();
+    const spacing = this.getSegmentSpacing();
 
     for (let i = 0; i < amount; i++) {
       const newIndex = this.segments.length;
       const tail = this.segments[newIndex - 1];
 
       // Calculate position behind tail using trail
-      const targetDistance = newIndex * this.segmentSpacing;
+      const targetDistance = newIndex * spacing;
       let accumulatedDistance = 0;
       let newX = tail.x;
       let newY = tail.y;
@@ -355,7 +432,7 @@ export default class Snake {
 
       const seg = this.scene.add.image(newX, newY, 'circle');
       seg.setTint(baseColor);
-      seg.setScale(0.48); // Adjusted for smaller snake
+      seg.setScale(scale * 0.98);
       seg.setDepth(100 - newIndex);
 
       this.segments.push(seg);
@@ -366,38 +443,31 @@ export default class Snake {
     if (this.isDead) return;
     this.isDead = true;
 
-    // Create pellets from dead snake's body
     const pellets = [];
     this.segments.forEach((seg, i) => {
-      if (i === 0) return; // Skip head
+      if (i === 0) return;
 
-      // Create a pellet at each segment position
       const Pellet = this.scene.sys.game.registry.get('PelletClass');
       if (Pellet) {
-        // 80% white pellets, 20% random colored
         const isWhite = Math.random() < 0.6;
         const color = isWhite ? 0xffffff : null;
-
-        // Most pellets are small from death
         const pellet = new Pellet(this.scene, seg.x, seg.y, 'small', color);
         pellets.push(pellet);
       }
     });
 
-    // Notify scene about new pellets
     if (this.scene.addDeathPellets) {
       this.scene.addDeathPellets(pellets);
     }
 
-    // Death effect
-    this.segments.forEach((seg, i) => {
+    this.segments.forEach((seg) => {
       this.scene.tweens.add({
         targets: seg,
         alpha: 0,
         scale: 0,
         angle: Phaser.Math.Between(-180, 180),
         y: seg.y - 50,
-        duration: 800,
+        duration: 400,
         delay: 30,
         ease: 'Power2'
       });

@@ -157,8 +157,8 @@ export class GameScene extends Phaser.Scene {
 
   // Spawn initial food distribution
   spawnInitialFood() {
-    const numberOfClusters = 60; // Number of clusters to spawn
-    const pelletsPerCluster = Phaser.Math.Between(5, 10); // Pellets per cluster
+    const numberOfClusters = 30; // Number of clusters to spawn (reduced from 60)
+    const pelletsPerCluster = Phaser.Math.Between(4, 7); // Pellets per cluster (reduced from 5-10)
 
     for (let i = 0; i < numberOfClusters; i++) {
       // Random cluster center position within arena
@@ -172,8 +172,9 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  // New method: Spawn a cluster of pellets
   spawnCluster(centerX, centerY, count) {
-    const clusterRadius = Phaser.Math.Between(80, 150); // Size of cluster spread
+    const clusterRadius = Phaser.Math.Between(100, 180); // Size of cluster spread (increased for more spacing)
 
     for (let i = 0; i < count; i++) {
       // Random position within cluster using circular distribution
@@ -191,19 +192,20 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  // Spawn a single pellet randomly within the arena
+  // Replace maintainFoodSupply method with this:
   maintainFoodSupply() {
     const currentFoodCount = this.foods.filter(f => !f.destroyed).length;
-    const deficit = this.targetFoodCount - currentFoodCount;
+    const targetCount = 200; // Reduced target count (was 400)
+    const deficit = targetCount - currentFoodCount;
 
-    if (deficit > 20) {
+    if (deficit > 15) {
       // Spawn a new cluster when food is low
       const angle = Math.random() * Math.PI * 2;
       const distance = Math.random() * (this.arenaRadius - 200);
       const clusterX = this.arenaCenterX + Math.cos(angle) * distance;
       const clusterY = this.arenaCenterY + Math.sin(angle) * distance;
 
-      const pelletsToSpawn = Math.min(Phaser.Math.Between(5, 12), deficit);
+      const pelletsToSpawn = Math.min(Phaser.Math.Between(4, 8), deficit);
       this.spawnCluster(clusterX, clusterY, pelletsToSpawn);
     }
   }
