@@ -98,6 +98,12 @@ export class FlappyBirdGame {
         if (btn) btn.innerText = this.isMuted ? "Unmute Sound" : "Mute Sound";
     }
 
+    // Helper to get random pipe distance
+    getPipeDist() {
+        // Range 300 - 450
+        return Math.floor(Math.random() * (470 - 300 + 1)) + 300;
+    }
+
     pipeLoc() {
         return Math.random() * (this.canvas.height - (this.pipeGap + this.pipeWidth) - this.pipeWidth) + this.pipeWidth;
     }
@@ -107,13 +113,17 @@ export class FlappyBirdGame {
         this.flight = this.jump;
         this.flyHeight = this.canvas.height / 2 - this.size[1] / 2;
 
-        // Calculate how many pipes we need to fill the screen
-        const pipeSpacing = this.pipeGap + this.pipeWidth;
-        const pipesNeeded = Math.ceil(this.canvas.width / pipeSpacing) + 1;
+        // Generate initial pipes with random spacing
+        this.pipes = [];
+        let currentX = this.canvas.width;
 
-        this.pipes = Array(pipesNeeded)
-            .fill()
-            .map((a, i) => [this.canvas.width + i * pipeSpacing, this.pipeLoc(), false]);
+        // Create enough pipes to safely cover potential screen width + buffer
+        // 4 pipes is plenty for the constrained width (431px) plus buffer
+        for (let i = 0; i < 4; i++) {
+            this.pipes.push([currentX, this.pipeLoc(), false]);
+            // Add random distance for next pipe
+            currentX += this.getPipeDist();
+        }
 
         // Hide pause button on reset/setup
         const btn = document.getElementById('flappyPauseBtn');
@@ -187,9 +197,15 @@ export class FlappyBirdGame {
 
                 // Remove & create new pipe
                 if (pipe[0] <= -this.pipeWidth) {
+                    // Check previous pipe (which is the last one in the array currently, before the update effectively)
+                    // The 'pipe' we are processing is the one drifting off. 
+                    // We need to append a new pipe after the LAST pipe in the array.
+                    const lastPipe = this.pipes[this.pipes.length - 1];
+                    const nextX = lastPipe[0] + this.getPipeDist();
+
                     this.pipes = [
                         ...this.pipes.slice(1),
-                        [this.pipes[this.pipes.length - 1][0] + this.pipeGap + this.pipeWidth, this.pipeLoc(), false],
+                        [nextX, this.pipeLoc(), false],
                     ];
                 }
 

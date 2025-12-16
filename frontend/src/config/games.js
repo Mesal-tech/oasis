@@ -30,6 +30,16 @@ const GAMES = [
     earnRate: '3x',
     thumbnail: '/assets/racing-thumb.jpg'
   },
+  {
+    id: 'cards',
+    title: 'Cards',
+    icon: '🃏',
+    description: 'Play classic card games online',
+    category: 'multiplayer',
+    players: 1240,
+    earnRate: '1.2x',
+    thumbnail: '/assets/cards-thumb.png'
+  },
 ];
 
 export default GAMES;
