@@ -47,12 +47,13 @@ export default class Snake {
     this.lastTapTime = 0;
     this.doubleTapDelay = 300;
 
-    this.skinColors = {
-      default: 0x00ff88,
-      'neon-blue': 0x00d4ff,
-      fire: 0xff4444,
-      galaxy: 0xaa00ff,
-      gold: 0xffd700
+    // Map skin IDs to texture keys and optional tints
+    this.skinConfig = {
+      default: { texture: 'skin_green', tint: 0xffffff },
+      'neon-blue': { texture: 'skin_neon', tint: 0xffffff },
+      fire: { texture: 'skin_fire', tint: 0xffffff },
+      galaxy: { texture: 'skin_galaxy', tint: 0xffffff },
+      gold: { texture: 'skin_green', tint: 0xffd700 } // Fallback to green with gold tint for now
     };
 
     this.createSnake();
@@ -94,12 +95,12 @@ export default class Snake {
   }
 
   createSnake() {
-    const baseColor = this.skinColors[this.skin] || 0x00ff88;
+    const config = this.skinConfig[this.skin] || this.skinConfig['default'];
     const scale = this.getCurrentScale();
 
     // HEAD
-    const head = this.scene.add.image(this.x, this.y, 'circle');
-    head.setTint(baseColor);
+    const head = this.scene.add.image(this.x, this.y, config.texture);
+    head.setTint(config.tint);
     head.setScale(scale);
     head.setDepth(100);
     head.snake = this;
@@ -115,10 +116,10 @@ export default class Snake {
       const seg = this.scene.add.image(
         this.x - i * spacing,
         this.y,
-        'circle'
+        config.texture // Use same texture for body
       );
 
-      seg.setTint(baseColor);
+      seg.setTint(config.tint);
       seg.setScale(scale * 0.98); // Slightly smaller than head
       seg.setDepth(100 - i);
 
@@ -127,6 +128,7 @@ export default class Snake {
     }
   }
 
+  // ... (keep setupPlayerControls) ...
   setupPlayerControls() {
     this.scene.input.on('pointermove', (pointer) => {
       if (this.isDead) return;
@@ -170,7 +172,6 @@ export default class Snake {
 
     space.on('up', () => this.endBoost());
   }
-
   startBoost() {
     // Can only boost if longer than initial length
     if (this.isDead || this.segments.length <= this.minLength) return;
@@ -399,7 +400,7 @@ export default class Snake {
   }
 
   grow(amount = 3) {
-    const baseColor = this.skinColors[this.skin] || 0x00ff88;
+    const config = this.skinConfig[this.skin] || this.skinConfig['default'];
     const scale = this.getCurrentScale();
     const spacing = this.getSegmentSpacing();
 
@@ -430,8 +431,8 @@ export default class Snake {
         accumulatedDistance += segmentDistance;
       }
 
-      const seg = this.scene.add.image(newX, newY, 'circle');
-      seg.setTint(baseColor);
+      const seg = this.scene.add.image(newX, newY, config.texture);
+      seg.setTint(config.tint);
       seg.setScale(scale * 0.98);
       seg.setDepth(100 - newIndex);
 

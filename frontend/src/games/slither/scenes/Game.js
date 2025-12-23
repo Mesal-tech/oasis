@@ -21,6 +21,12 @@ export class GameScene extends Phaser.Scene {
     this.load.image('tile', '/assets/slither/tile.png');
     this.load.image('white-shadow', '/assets/slither/white-shadow.png');
 
+    // Skins
+    this.load.image('skin_green', '/assets/slither/skins/skin_green.png');
+    this.load.image('skin_neon', '/assets/slither/skins/skin_neon.png');
+    this.load.image('skin_fire', '/assets/slither/skins/skin_fire.png');
+    this.load.image('skin_galaxy', '/assets/slither/skins/skin_galaxy.png');
+
     this.load.audio('bgm', [
       '/assets/slither/audio/bgm.mp3',
       '/assets/slither/audio/bgm.ogg'
@@ -68,7 +74,12 @@ export class GameScene extends Phaser.Scene {
     warningZone.setDepth(1);
 
     // === PLAYER SNAKE ===
-    this.player = new Snake(this, this.arenaCenterX, this.arenaCenterY, 'neon-blue', true);
+    const playerData = this.registry.get('playerData') || {};
+    const playerSkin = playerData.skin || 'neon-blue';
+    const playerNickname = playerData.nickname || 'You';
+
+    this.player = new Snake(this, this.arenaCenterX, this.arenaCenterY, playerSkin, true);
+    this.player.nickname = playerNickname;
     this.snakes.push(this.player);
 
     // === CAMERA FOLLOW PLAYER ===
@@ -384,9 +395,57 @@ export class GameScene extends Phaser.Scene {
     // 7. CLEAN UP DEAD SNAKES
     this.snakes = this.snakes.filter(s => !s.isDead);
 
-    // 8. UPDATE UI
+    // 8. SPAWN NEW BOTS IF NEEDED
+    if (this.snakes.length < 25) {
+      if (Math.random() < 0.05) { // Small chance per frame to spawn a new bot
+        this.spawnBot();
+      }
+    }
+
+    // 9. UPDATE UI
     if (this.ui) {
       this.ui.update();
+    }
+  }
+
+  spawnBot() {
+    const skins = ['default', 'fire', 'galaxy', 'gold', 'neon-blue'];
+    const names = ['Viper', 'Python', 'Anaconda', 'Cobra', 'Sidewinder', 'Noodle', 'Snek', 'Danger Noodle', 'Hiss', 'Venom', 'Hydra', 'Basilisk', 'Worm', 'Slider', 'Glider'];
+
+    let botX, botY;
+    let validPosition = false;
+    let attempts = 0;
+    const minDistanceFromOthers = 300;
+    const minDistanceFromEdge = 400;
+
+    while (!validPosition && attempts < 20) {
+      attempts++;
+      const angle = Math.random() * Math.PI * 2;
+      const maxDistance = this.arenaRadius - minDistanceFromEdge;
+      const distance = Math.random() * maxDistance;
+      botX = this.arenaCenterX + Math.cos(angle) * distance;
+      botY = this.arenaCenterY + Math.sin(angle) * distance;
+
+      validPosition = true;
+      for (const existingSnake of this.snakes) {
+        const head = existingSnake.segments[0];
+        const dist = Math.hypot(botX - head.x, botY - head.y);
+        if (dist < minDistanceFromOthers) {
+          validPosition = false;
+          break;
+        }
+      }
+    }
+
+    if (validPosition) {
+      const bot = new Snake(
+        this,
+        botX,
+        botY,
+        skins[Math.floor(Math.random() * skins.length)]
+      );
+      bot.nickname = names[Math.floor(Math.random() * names.length)];
+      this.snakes.push(bot);
     }
   }
 }

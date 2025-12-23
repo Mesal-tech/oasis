@@ -11,10 +11,14 @@ export class SlitherGame {
     this.game = null;
   }
 
-  launch() {
+  launch(options = {}) {
     const config = SlitherConfig.getConfig(this.containerId);
     config.scene = [BootScene, PreloaderScene, GameScene];
     this.game = new Phaser.Game(config);
+
+    // Pass player options (nickname, skin) to the registry so scenes can access them
+    this.game.registry.set('playerData', options);
+
     return this.game;
   }
 

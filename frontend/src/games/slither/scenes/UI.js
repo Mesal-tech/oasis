@@ -6,169 +6,174 @@ export default class UI {
     this.scene = scene;
     this.container = scene.add.container(0, 0).setScrollFactor(0).setDepth(100);
 
-    // UI dimensions
-    this.leaderboardWidth = 200;
-    this.leaderboardHeight = 300;
-    this.minimapSize = 180;
-    this.statsWidth = 180;
-    this.statsHeight = 80;
+    // Responsive positioning
+    const { width, height } = scene.scale;
 
-    this.createLeaderboard();
-    this.createMinimap();
-    this.createPlayerStats();
+    this.leaderboardWidth = 220;
+    this.minimapSize = 160;
+
+    // Create UI Elements
+    this.createLeaderboard(width, 10);
+    this.createMinimap(width, height);
+    this.createStats(0, height);
+    this.createCompass(width, height); // Optional polish
   }
 
-  createLeaderboard() {
-    const padding = 15;
-    const x = this.scene.cameras.main.width - this.leaderboardWidth - padding;
-    const y = padding;
+  createLeaderboard(screenWidth, y) {
+    const x = screenWidth - this.leaderboardWidth - 20;
+
+    // Background Panel
+    const bg = this.scene.add.graphics();
+    bg.fillStyle(0x000000, 0.5);
+    bg.fillRoundedRect(0, 0, this.leaderboardWidth, 260, 10);
+
+    this.leaderboardContainer = this.scene.add.container(x, y);
+    this.leaderboardContainer.add(bg);
+    this.container.add(this.leaderboardContainer);
 
     // Title
-    this.leaderboardTitle = this.scene.add.text(
-      x + this.leaderboardWidth / 2, y + 15,
+    const title = this.scene.add.text(
+      this.leaderboardWidth / 2, 15,
       'LEADERBOARD',
       {
-        fontSize: '16px',
-        fontFamily: 'Arial, sans-serif',
+        fontSize: '14px',
+        fontFamily: '"Segoe UI", sans-serif',
         fontStyle: 'bold',
-        color: '#00ffff',
-        align: 'center'
+        color: '#aaaaaa',
       }
-    ).setOrigin(0.5, 0).setScrollFactor(0);
-    this.container.add(this.leaderboardTitle);
+    ).setOrigin(0.5);
+    this.leaderboardContainer.add(title);
 
-    // Leaderboard entries
+    // Entries
     this.leaderboardEntries = [];
     for (let i = 0; i < 10; i++) {
-      const entryY = y + 45 + (i * 24);
-
-      const entry = this.scene.add.text(
-        x + 10, entryY,
+      const entryText = this.scene.add.text(
+        15, 45 + (i * 20),
         '',
         {
           fontSize: '13px',
-          fontFamily: 'Arial, sans-serif',
-          color: '#ffffff',
-          align: 'left'
+          fontFamily: '"Segoe UI", sans-serif',
+          fontStyle: 'bold',
+          color: '#ffffff'
         }
-      ).setOrigin(0, 0).setScrollFactor(0);
-
-      this.leaderboardEntries.push(entry);
-      this.container.add(entry);
+      );
+      this.leaderboardEntries.push(entryText);
+      this.leaderboardContainer.add(entryText);
     }
   }
 
-  createMinimap() {
-    const padding = 15;
-    const x = padding;
-    const y = padding;
+  createMinimap(screenWidth, screenHeight) {
+    const margin = 20;
+    const x = screenWidth - this.minimapSize - margin;
+    const y = screenHeight - this.minimapSize - margin;
 
-    // Arena circle (centered, no square background)
-    const centerX = x + this.minimapSize / 2;
-    const centerY = y + this.minimapSize / 2;
-    const arenaRadius = (this.minimapSize / 2) - 10;
-
-    // Circular background
-    this.minimapBg = this.scene.add.circle(
-      centerX, centerY,
-      arenaRadius,
-      0x000000, 0.6
-    ).setScrollFactor(0);
-    this.container.add(this.minimapBg);
-
-    // Circular border
-    this.minimapArena = this.scene.add.circle(
-      centerX, centerY,
-      arenaRadius,
-      0x000000, 0
-    ).setScrollFactor(0).setStrokeStyle(2, 0x00ff00, 0.8);
-    this.container.add(this.minimapArena);
-
-    // Store minimap properties for updating
-    this.minimapCenterX = centerX;
-    this.minimapCenterY = centerY;
-    this.minimapRadius = arenaRadius;
-    this.minimapScale = arenaRadius / this.scene.arenaRadius;
-
-    // Container for minimap dots (snakes and player)
-    this.minimapDots = this.scene.add.container(0, 0).setScrollFactor(0);
-    this.container.add(this.minimapDots);
-  }
-
-  createPlayerStats() {
-    const padding = 15;
-    const x = padding;
-    const y = this.scene.cameras.main.height - this.statsHeight - padding;
+    this.minimapContainer = this.scene.add.container(x, y);
+    this.container.add(this.minimapContainer);
 
     // Background
-    this.statsBg = this.scene.add.rectangle(
-      x, y,
-      this.statsWidth, this.statsHeight,
-      0x000000, 0.6
-    ).setOrigin(0, 0).setScrollFactor(0);
-    this.container.add(this.statsBg);
+    const bg = this.scene.add.circle(
+      this.minimapSize / 2, this.minimapSize / 2,
+      this.minimapSize / 2,
+      0x000000, 0.4
+    );
+    this.minimapContainer.add(bg);
 
     // Border
-    const border = this.scene.add.rectangle(
-      x, y,
-      this.statsWidth, this.statsHeight,
-      0x000000, 0
-    ).setOrigin(0, 0).setScrollFactor(0).setStrokeStyle(2, 0xffff00, 0.8);
-    this.container.add(border);
+    const border = this.scene.add.circle(
+      this.minimapSize / 2, this.minimapSize / 2,
+      this.minimapSize / 2
+    );
+    border.setStrokeStyle(2, 0xffffff, 0.2);
+    this.minimapContainer.add(border);
 
-    // Length text
-    this.lengthText = this.scene.add.text(
-      x + 10, y + 15,
-      'Length: 0',
-      {
-        fontSize: '16px',
-        fontFamily: 'Arial, sans-serif',
-        fontStyle: 'bold',
-        color: '#ffffff'
-      }
-    ).setOrigin(0, 0).setScrollFactor(0);
-    this.container.add(this.lengthText);
+    // Store properties
+    this.minimapRadius = (this.minimapSize / 2) - 4;
+    this.minimapScale = this.minimapRadius / this.scene.arenaRadius;
 
-    // Rank text
-    this.rankText = this.scene.add.text(
-      x + 10, y + 45,
-      'Rank: -',
-      {
-        fontSize: '16px',
-        fontFamily: 'Arial, sans-serif',
-        fontStyle: 'bold',
-        color: '#ffff00'
-      }
-    ).setOrigin(0, 0).setScrollFactor(0);
-    this.container.add(this.rankText);
+    // Dots Container
+    this.minimapDots = this.scene.add.graphics();
+    this.minimapContainer.add(this.minimapDots);
+
+    // Player Indicator (Pulsing ring)
+    this.playerIndicator = this.scene.add.graphics();
+    this.minimapContainer.add(this.playerIndicator);
+
+    // Label
+    /*const label = this.scene.add.text(this.minimapSize/2, -15, 'MAP', {
+        fontSize: '10px',
+        color: '#ffffff',
+        fontFamily: 'sans-serif'
+    }).setOrigin(0.5);
+    this.minimapContainer.add(label);*/
+  }
+
+  createStats(x, screenHeight) {
+    const margin = 20;
+    this.statsContainer = this.scene.add.container(margin, screenHeight - 60);
+    this.container.add(this.statsContainer);
+
+    // Length Display
+    this.lengthText = this.scene.add.text(0, 0, 'Length: 0', {
+      fontSize: '24px',
+      fontFamily: '"Segoe UI", Arial, sans-serif',
+      fontStyle: 'bold',
+      color: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 4
+    });
+    this.statsContainer.add(this.lengthText);
+
+    // Rank Display
+    this.rankText = this.scene.add.text(0, 30, 'Rank: -', {
+      fontSize: '16px',
+      fontFamily: '"Segoe UI", Arial, sans-serif',
+      color: '#cccccc',
+      stroke: '#000000',
+      strokeThickness: 3
+    });
+    this.statsContainer.add(this.rankText);
+  }
+
+  createCompass(w, h) {
+    // Maybe just a simple coordinate text debug in dev?
+    // Skipping for now to keep it clean.
   }
 
   update() {
     this.updateLeaderboard();
     this.updateMinimap();
-    this.updatePlayerStats();
+    this.updateStats();
   }
 
   updateLeaderboard() {
-    // Sort snakes by length (segment count)
-    const sortedSnakes = [...this.scene.snakes]
+    if (!this.scene.snakes) return;
+
+    const sorted = [...this.scene.snakes]
       .filter(s => !s.isDead)
-      .sort((a, b) => b.segments.length - a.segments.length)
+      .sort((a, b) => b.getLength() - a.getLength())
       .slice(0, 10);
 
-    // Update each leaderboard entry
     this.leaderboardEntries.forEach((entry, i) => {
-      if (i < sortedSnakes.length) {
-        const snake = sortedSnakes[i];
+      if (i < sorted.length) {
+        const snake = sorted[i];
         const isPlayer = snake.isPlayer;
-        const rank = i + 1;
-        const name = isPlayer ? 'YOU' : `Bot ${snake.id || i}`;
-        const length = snake.segments.length;
+        const name = snake.nickname || (isPlayer ? 'You' : `Bot ${snake.id || Math.floor(Math.random() * 1000)}`);
+        const len = Math.floor(snake.getLength());
 
-        // Highlight player entry
-        const color = isPlayer ? '#00ff00' : '#ffffff';
-        entry.setColor(color);
-        entry.setText(`${rank}. ${name}: ${length}`);
+        // Formatting
+        const maxLen = 12;
+        const trunkName = name.length > maxLen ? name.substring(0, maxLen) + '...' : name;
+
+        entry.setText(`#${i + 1}  ${trunkName}  (${len})`);
+
+        if (isPlayer) {
+          entry.setColor('#00ff88');
+          entry.setStroke('#004400', 2);
+        } else {
+          entry.setColor('#ffffff');
+          entry.setStroke(null);
+          if (i === 0) entry.setColor('#ffd700'); // Gold for #1
+        }
         entry.setVisible(true);
       } else {
         entry.setVisible(false);
@@ -177,54 +182,53 @@ export default class UI {
   }
 
   updateMinimap() {
-    // Clear previous dots
-    this.minimapDots.removeAll(true);
+    const g = this.minimapDots;
+    g.clear();
 
-    // Draw all snakes on minimap
+    const cx = this.minimapSize / 2;
+    const cy = this.minimapSize / 2;
+
+    // Draw all snakes
     this.scene.snakes.forEach(snake => {
       if (snake.isDead) return;
 
       const head = snake.segments[0];
+      // Rel to arena center
+      const rx = head.x - this.scene.arenaCenterX;
+      const ry = head.y - this.scene.arenaCenterY;
 
-      // Convert world position to minimap position
-      const relX = head.x - this.scene.arenaCenterX;
-      const relY = head.y - this.scene.arenaCenterY;
+      const mx = cx + rx * this.minimapScale;
+      const my = cy + ry * this.minimapScale;
 
-      const minimapX = this.minimapCenterX + (relX * this.minimapScale);
-      const minimapY = this.minimapCenterY + (relY * this.minimapScale);
+      // Check bounds
+      const d = Math.hypot(mx - cx, my - cy);
+      if (d > this.minimapRadius) return;
 
-      // Draw dot
-      const dotSize = snake.isPlayer ? 4 : 2;
-      const dotColor = snake.isPlayer ? 0x00ff00 : 0xff0000;
+      if (snake.isPlayer) {
+        // Player is drawn specially
+        this.playerIndicator.clear();
+        this.playerIndicator.lineStyle(2, 0xffffff, 0.8);
+        this.playerIndicator.strokeCircle(mx, my, 4);
 
-      const dot = this.scene.add.circle(
-        minimapX, minimapY,
-        dotSize,
-        dotColor, 1
-      ).setScrollFactor(0);
-
-      this.minimapDots.add(dot);
+        g.fillStyle(0x00ff88, 1);
+        g.fillCircle(mx, my, 2.5);
+      } else {
+        // Bots
+        g.fillStyle(0xaaaaaa, 0.6);
+        g.fillCircle(mx, my, 1.5);
+      }
     });
   }
 
-  updatePlayerStats() {
-    if (!this.scene.player || this.scene.player.isDead) {
-      this.lengthText.setText('Length: 0');
-      this.rankText.setText('Rank: -');
-      return;
-    }
+  updateStats() {
+    if (!this.scene.player || this.scene.player.isDead) return;
 
-    // Update length
-    const length = this.scene.player.segments.length;
-    this.lengthText.setText(`Length: ${length}`);
+    const len = Math.floor(this.scene.player.getLength());
+    this.lengthText.setText(`Length: ${len}`);
 
     // Calculate rank
-    const sortedSnakes = [...this.scene.snakes]
-      .filter(s => !s.isDead)
-      .sort((a, b) => b.segments.length - a.segments.length);
-
-    const rank = sortedSnakes.findIndex(s => s === this.scene.player) + 1;
-    this.rankText.setText(`Rank: ${rank}/${sortedSnakes.length}`);
+    const rank = this.scene.snakes.filter(s => !s.isDead && s.getLength() > len).length + 1;
+    this.rankText.setText(`Your Rank: ${rank} of ${this.scene.snakes.filter(s => !s.isDead).length}`);
   }
 
   destroy() {
