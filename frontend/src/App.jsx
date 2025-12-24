@@ -6,6 +6,7 @@ import { LeaderboardScreen } from './ui/screens/Leaderboard';
 import { MarketplaceScreen } from './ui/screens/Marketplace';
 import { RewardsScreen } from './ui/screens/Rewards';
 import { GameScreen } from './ui/screens/GameScreen';
+import { LoginButton } from './components/LoginButton';
 
 function App() {
   return (

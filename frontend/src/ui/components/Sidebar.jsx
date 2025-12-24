@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Home, Trophy, ShoppingBag, Gift, LogOut, Wallet, Sparkles } from 'lucide-react';
 import { userStore } from '../../state/userStore';
+import { LoginButton } from '../../components/LoginButton';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: Home, href: '/' },
@@ -82,13 +83,17 @@ export const Sidebar = () => {
             </nav>
 
             {/* Logout */}
-            <div>
+            <div className="space-y-4">
               <button onClick={handleLogout} className="logout-btn w-full flex items-center gap-4 py-2 rounded-xl text-red-400 hover:text-red-300 transition-all group">
                 <div className="logout-icon">
                   <LogOut size={20} className="group-hover:rotate-12 transition-transform" />
                 </div>
                 <span className="font-medium">Logout</span>
               </button>
+
+              <div className="pt-4 border-t border-white/5">
+                <LoginButton />
+              </div>
             </div>
           </div>
 
