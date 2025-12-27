@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Trophy, ShoppingBag, Gift, LogOut, Wallet, Sparkles } from 'lucide-react';
-import { userStore } from '../../state/userStore';
+import { Home, Trophy, ShoppingBag, Gift, LogOut, Wallet, Sparkles, Swords, Gamepad2 } from 'lucide-react';
+import { usePlayer } from '../../state/PlayerContext';
 import { LoginButton } from '../../components/LoginButton';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: Home, href: '/' },
+  { label: 'Games', icon: Gamepad2, href: '/games' },
   { label: 'Leaderboard', icon: Trophy, href: '/leaderboard' },
+  { label: 'Arena', icon: Swords, href: '/arena' },
   { label: 'Marketplace', icon: ShoppingBag, href: '/marketplace' },
   { label: 'Rewards', icon: Gift, href: '/rewards' },
 ];
@@ -14,101 +16,90 @@ const NAV_ITEMS = [
 export const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [player, setPlayer] = useState(userStore.player);
-
-  useEffect(() => {
-    // Initial state
-    setPlayer(userStore.player);
-
-    const unsubscribe = userStore.subscribe((updatedPlayer) => {
-      setPlayer({ ...updatedPlayer });
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  const handleLogout = () => {
-    // userStore.logout(); // If logout exists
-    console.log('Logging out...');
-  };
+  const { player } = usePlayer(); // Use PlayerContext instead of userStore
 
   return (
     <>
       <div className="nav-wrapper">
         {/* Desktop Sidebar */}
-        <aside className="hidden md:flex sticky top-0 left-0 z-50 w-72 h-screen bg-gradient-to-b from-[#1d1d1d] to-black text-white flex-col shadow-2xl border-r border-white/5 overflow-y-auto p-4">
+        <aside className="hidden md:flex sticky top-0 left-0 z-50 w-72 h-screen bg-[#121215] border-r border-[#27272A] text-white flex-col shadow-none overflow-y-auto p-6">
           {/* Header */}
-          <div className="pb-8">
-            <div className="flex items-center gap-3">
-              <div className="text-3xl font-bold bg-gradient-to-r from-transparent via-white/80 to-white bg-clip-text text-transparent">
-                Oasis
+          <div className="pb-8 mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-[#FF5D2E] rounded-lg flex items-center justify-center">
+                <div className="w-4 h-4 bg-black rounded-sm rotate-45"></div>
+              </div>
+              <div className="text-2xl font-bold tracking-tight text-white">
+                OASIS
               </div>
             </div>
           </div>
 
-          {/* Player Card/Wallet Placeholder */}
-          <div className="mb-4">
-            <div className="min-h-[10rem] flex items-center gap-4 p-4 bg-white/5 rounded-2xl backdrop-blur-sm border border-white/10">
-              {/* Logic for card goes here if needed, keeping it minimal as per original */}
+          <div className="p-4 bg-[#18181B] border border-[#27272A] rounded-2xl mb-2">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-[#FF5D2E] to-[#FF8C5D] rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                {player?.username?.[0]?.toUpperCase() || 'P'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-bold text-white truncate">{player?.username || 'Guest'}</div>
+                <div className="text-xs text-[#71717A] font-mono">Level {player?.level || 1}</div>
+              </div>
+            </div>
+
+            {/* XP Progress Bar */}
+            <div className="w-full h-1.5 bg-[#27272A] rounded-full overflow-hidden mb-2">
+              <div
+                className="h-full bg-gradient-to-r from-[#FF5D2E] to-[#FF8C5D] transition-all duration-500"
+                style={{
+                  width: `${player?.xp ? ((player.xp % 1000) / 1000) * 100 : 0}%`
+                }}
+              ></div>
+            </div>
+
+            <div className="text-[10px] text-[#A1A1AA] flex justify-between mb-3">
+              <span>XP Progress</span>
+              <span>{player?.xp ? `${player.xp % 1000}/1000` : '0/1000'}</span>
             </div>
           </div>
 
-          <div className="mb-5 flex-1 flex flex-col">
-            {/* Navigation Menu */}
-            <nav className="desktop-nav-container flex-1 space-y-1 mb-6">
-              {NAV_ITEMS.map((item) => {
-                const isActive = location.pathname === item.href || (item.href !== '/' && location.pathname.startsWith(item.href));
-                const Icon = item.icon;
+          {/* Navigation Menu */}
+          <nav className="flex-1 space-y-2 mb-8">
+            {NAV_ITEMS.map((item) => {
+              const isActive = location.pathname === item.href || (item.href !== '/' && location.pathname.startsWith(item.href));
+              const Icon = item.icon;
 
-                return (
-                  <div
-                    key={item.href}
-                    onClick={() => navigate(item.href)}
-                    className={`
-                        nav-item flex items-center gap-4 py-2.5 rounded-xl transition-all group cursor-pointer
-                        ${isActive ? 'active-nav text-white bg-white/5' : 'text-white/50 hover:text-white'}
-                        hover:pl-6
+              return (
+                <div
+                  key={item.href}
+                  onClick={() => navigate(item.href)}
+                  className={`
+                        group flex items-center gap-3 px-4 py-3 rounded-xl transition-all cursor-pointer font-bold text-sm
+                        ${isActive
+                      ? 'bg-white/5 text-[#FFFFFF]'
+                      : 'text-[#71717A] hover:text-white hover:bg-[#18181B]'
+                    }
                       `}
-                  >
-                    <div className="icon-placeholder">
-                      <Icon size={22} className="text-current group-hover:scale-110 transition-transform" />
-                    </div>
-                    <span className="font-medium">{item.label}</span>
-                    {isActive && (
-                      <div className="ml-auto w-1.5 h-1.5 bg-gradient-to-r from-pink-400 to-purple-400 rounded-full" />
-                    )}
-                  </div>
-                );
-              })}
-            </nav>
-
-            {/* Logout */}
-            <div className="space-y-4">
-              <button onClick={handleLogout} className="logout-btn w-full flex items-center gap-4 py-2 rounded-xl text-red-400 hover:text-red-300 transition-all group">
-                <div className="logout-icon">
-                  <LogOut size={20} className="group-hover:rotate-12 transition-transform" />
+                >
+                  <Icon size={20} className={isActive ? 'text-[#FFFFFF]' : 'text-[#71717A] group-hover:text-white transition-colors'} />
+                  <span>{item.label}</span>
                 </div>
-                <span className="font-medium">Logout</span>
-              </button>
+              );
+            })}
+          </nav>
 
-              <div className="pt-4 border-t border-white/5">
-                <LoginButton />
-              </div>
+          {/* Bottom Section */}
+          <div className="mt-auto">
+            <LoginButton />
+
+            <div className="mt-4 pt-4 border-t border-[#27272A] text-center">
+              <p className="text-[10px] text-[#52525B]">© 2024 Oasis Gaming</p>
             </div>
-          </div>
-
-          {/* Footer */}
-          <div className="px-6 py-4 border-t border-white/5">
-            <p className="text-xs text-white/40 text-center">
-              <a href="#" className="hover:text-white/60 transition">Terms</a> &
-              <a href="#" className="hover:text-white/60 transition"> Privacy</a>
-            </p>
           </div>
         </aside>
 
         {/* Mobile Floating Bottom Bar */}
-        <nav className="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-md">
-          <div className="mobile-nav-container flex items-center justify-around px-4 py-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-[20vh] shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
+        <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-sm">
+          <div className="flex items-center justify-around px-2 py-2 bg-[#18181B]/90 backdrop-blur-xl border border-[#27272A] rounded-2xl shadow-2xl">
             {NAV_ITEMS.map((item) => {
               const isActive = location.pathname === item.href;
               const Icon = item.icon;
@@ -118,13 +109,11 @@ export const Sidebar = () => {
                   key={item.href}
                   onClick={() => navigate(item.href)}
                   className={`
-                      mobile-nav-item relative flex items-center justify-center w-10 h-10 rounded-2xl transition-all duration-300
-                      ${isActive ? 'bg-white/20 text-white scale-110' : 'text-white/60 hover:text-white hover:bg-white/10 active:scale-95'}
+                      relative flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-300
+                      ${isActive ? 'bg-[#FF5D2E] text-black shadow-lg shadow-[#FF5D2E]/20' : 'text-[#71717A] hover:text-white hover:bg-white/5'}
                     `}
                 >
-                  <div className="mobile-icon-placeholder">
-                    <Icon size={22} className="transition-transform" strokeWidth={isActive ? 2.5 : 2} />
-                  </div>
+                  <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
                 </button>
               );
             })}

@@ -11,6 +11,12 @@ const size = [51, 36];
 const jump = -11.5;
 let cTenth = canvas.width / 10;
 
+// Game instance reference (set from index.js)
+let gameInstance = null;
+export const setGameInstance = (instance) => {
+  gameInstance = instance;
+};
+
 const resizeCanvas = () => {
   canvas.height = 768;
   canvas.width = window.innerWidth * (canvas.height / window.innerHeight);
@@ -132,7 +138,15 @@ const render = () => {
         ].every((elem) => elem)
       ) {
         gamePlaying = false;
-        setup();
+
+        // Emit gameOver event instead of auto-restarting
+        if (gameInstance && gameInstance.game && gameInstance.game.events) {
+          console.log('🦅 Flappy Bird gameOver. Score:', currentScore);
+          gameInstance.game.events.emit('gameOver', currentScore);
+        }
+
+        // Don't call setup() here - let the parent handle restart
+        // setup();
       }
     });
   }
@@ -189,4 +203,10 @@ window.onkeydown = (e) => {
     gamePlaying = true;
     flight = jump;
   }
+};
+
+// Export setup function for restarting
+export const restartGame = () => {
+  setup();
+  gamePlaying = false;
 };

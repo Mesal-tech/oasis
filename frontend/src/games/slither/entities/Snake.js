@@ -259,7 +259,20 @@ export default class Snake {
       }
     }
 
-    this.eyes.update(scale);
+    // Update eyes with appropriate target
+    let targetX, targetY;
+    if (this.isPlayer) {
+      const pointer = this.scene.input.activePointer;
+      targetX = pointer.worldX ?? pointer.x;
+      targetY = pointer.worldY ?? pointer.y;
+    } else {
+      // Bots look in their movement direction
+      const lookDistance = 300;
+      targetX = head.x + Math.cos(this.angle) * lookDistance;
+      targetY = head.y + Math.sin(this.angle) * lookDistance;
+    }
+
+    this.eyes.update(scale, targetX, targetY);
   }
 
   dropBoostPellet() {
@@ -444,6 +457,9 @@ export default class Snake {
     if (this.isDead) return;
     this.isDead = true;
 
+    // IMPORTANT: Capture length BEFORE destruction
+    const finalLength = this.segments.length;
+
     const pellets = [];
     this.segments.forEach((seg, i) => {
       if (i === 0) return;
@@ -477,7 +493,8 @@ export default class Snake {
     this.scene.time.delayedCall(1000, () => {
       this.destroy();
       if (this.isPlayer) {
-        this.scene.game.events.emit('gameOver', this.segments.length);
+        // Use captured length instead of this.segments.length (which is now 0)
+        this.scene.game.events.emit('gameOver', finalLength);
       }
     });
   }

@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+html {
+  font-size: 87.5%;
+  /* Reduces base size to 14px (from 16px), scaling all rems down */
+}
+
 body {
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
   background: #141415;
@@ -40,35 +45,6 @@ body {
 *::-webkit-scrollbar-thumb:hover,
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #515151;
-}
-
-/* ===== NAVBAR ===== */
-.navbar {
-  @apply backdrop-blur-xl sticky top-0 z-50;
-  padding: 1rem 2rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.logo {
-  @apply text-2xl font-black tracking-tight;
-  background: linear-gradient(to right, #c084fc, #8b5cf6);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.token-display {
-  @apply bg-purple-900/40 border border-purple-500/30 text-purple-300 px-4 py-2 rounded-lg font-semibold text-sm;
-}
-
-.player-info {
-  @apply flex items-center gap-3 bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-2;
-}
-
-.player-avatar {
-  @apply w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center font-bold text-white text-sm;
 }
 
 .btn {

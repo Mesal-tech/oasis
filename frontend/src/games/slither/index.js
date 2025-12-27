@@ -22,8 +22,21 @@ export class SlitherGame {
     return this.game;
   }
 
+  stopMusic() {
+    if (this.game && this.game.scene) {
+      const gameScene = this.game.scene.getScene('Game');
+      if (gameScene && gameScene.sound) {
+        const bgm = gameScene.sound.get('bgm');
+        if (bgm) {
+          bgm.stop();
+        }
+      }
+    }
+  }
+
   stop() {
     if (this.game) {
+      this.stopMusic(); // Stop music before destroying
       this.game.destroy(true);
       this.game = null;
     }

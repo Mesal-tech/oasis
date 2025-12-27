@@ -1,0 +1,111 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Player {
+  id            String   @id @default(uuid())
+  walletAddress String?  @unique
+  username      String   @unique
+  email         String?  @unique
+  level         Int      @default(1)
+  xp            Int      @default(0)
+  rank          String   @default("Bronze")
+  balance       Float    @default(0)
+  tokens        Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  matches       Match[]
+  arenas        Arena[]        @relation("ArenaWinner")
+  leaderboards  Leaderboard[]
+  arenaPlayers  ArenaPlayer[]
+
+  @@index([walletAddress])
+  @@index([username])
+}
+
+model Match {
+  id        String   @id @default(uuid())
+  gameId    String
+  playerId  String
+  score     Int
+  duration  Int      // in seconds
+  earnedXP  Int
+  earnedTokens Int   @default(0)
+  metadata  Json?    // Additional game-specific data
+  createdAt DateTime @default(now())
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
+  @@index([gameId])
+  @@index([createdAt])
+}
+
+model Arena {
+  id         String      @id @default(uuid())
+  gameId     String
+  name       String
+  entryFee   Float
+  prizePool  Float
+  maxPlayers Int         @default(10)
+  status     ArenaStatus @default(WAITING)
+  winnerId   String?
+  startedAt  DateTime?
+  endedAt    DateTime?
+  createdAt  DateTime    @default(now())
+
+  winner  Player?       @relation("ArenaWinner", fields: [winnerId], references: [id])
+  players ArenaPlayer[]
+
+  @@index([gameId])
+  @@index([status])
+}
+
+model ArenaPlayer {
+  id        String   @id @default(uuid())
+  arenaId   String
+  playerId  String
+  score     Int      @default(0)
+  rank      Int?
+  joinedAt  DateTime @default(now())
+
+  arena  Arena  @relation(fields: [arenaId], references: [id], onDelete: Cascade)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([arenaId, playerId])
+  @@index([arenaId])
+  @@index([playerId])
+}
+
+model Leaderboard {
+  id        String   @id @default(uuid())
+  gameId    String
+  playerId  String
+  score     Int
+  rank      Int
+  period    String   @default("all-time") // "daily", "weekly", "monthly", "all-time"
+  updatedAt DateTime @updatedAt
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, playerId, period])
+  @@index([gameId, period, rank])
+  @@index([playerId])
+}
+
+enum ArenaStatus {
+  WAITING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}

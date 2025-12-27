@@ -1,4 +1,5 @@
 
+
 export class FlappyBirdGame {
     constructor(containerId) {
         this.containerId = containerId;
@@ -7,6 +8,24 @@ export class FlappyBirdGame {
         this.ctx = null;
         this.img = new Image();
         this.img.src = "https://i.ibb.co/Q9yv5Jk/flappy-bird-set.png";
+
+        // Add Phaser-like event emitter for compatibility with GameScreen
+        this.game = {
+            events: {
+                listeners: {},
+                on: (event, callback) => {
+                    if (!this.game.events.listeners[event]) {
+                        this.game.events.listeners[event] = [];
+                    }
+                    this.game.events.listeners[event].push(callback);
+                },
+                emit: (event, ...args) => {
+                    if (this.game.events.listeners[event]) {
+                        this.game.events.listeners[event].forEach(cb => cb(...args));
+                    }
+                }
+            }
+        };
 
         // Game state
         this.gamePlaying = false;
@@ -219,7 +238,15 @@ export class FlappyBirdGame {
                 ) {
                     if (!this.isMuted) this.dieSound.play().catch(e => console.log('Audio play failed', e));
                     this.gamePlaying = false;
-                    this.setup();
+
+                    // Emit gameOver event instead of auto-restarting
+                    console.log('🦅 Flappy Bird gameOver. Score:', this.currentScore);
+                    if (this.game && this.game.events) {
+                        this.game.events.emit('gameOver', this.currentScore);
+                    }
+
+                    // Don't call setup() here - let GameScreen handle restart
+                    // this.setup();
                 }
             });
         }

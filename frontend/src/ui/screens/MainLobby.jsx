@@ -1,282 +1,278 @@
 import React, { useState, useEffect } from 'react';
+import { Play, Users, Trophy, Star, TrendingUp, Search, Filter, ChevronRight, ChevronLeft, ArrowUpRight } from 'lucide-react';
+import { usePlayer } from '../../state/PlayerContext';
+import apiClient from '../../api/client';
 import { useNavigate } from 'react-router-dom';
-import { User, Sparkles, LogOut, Settings, Wallet } from 'lucide-react';
-import GAMES from '../../config/games.js';
 
+// Main Landing Page Component
 export const MainLobby = () => {
+  const { player } = usePlayer();
   const navigate = useNavigate();
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [currentFilter, setCurrentFilter] = useState('all');
+  const [games, setGames] = useState([]);
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [currentSlide, setCurrentSlide] = useState(0);
 
-  const toggleDropdown = (e) => {
-    e.stopPropagation();
-    setDropdownOpen(!dropdownOpen);
-  };
+  // Mock data for "Trending" list (Right side of Hero)
+  const TRENDING_GAMES = [
+    { rank: 1, name: "Slither.io Arena", players: "12.5K", change: "+14%" },
+    { rank: 2, name: "Flappy Royale", players: "8.2K", change: "+5%" },
+    { rank: 3, name: "Cyber Chess", players: "5.1K", change: "-2%" },
+    { rank: 4, name: "Neon Racer", players: "3.9K", change: "+22%" },
+    { rank: 5, name: "Space Invaders", players: "2.5K", change: "+8%" }
+  ];
 
-  const closeDropdown = () => setDropdownOpen(false);
+  const FEATURED_SLIDES = [
+    {
+      id: 1,
+      title: "Slither.io Arena",
+      subtitle: "Multiplayer Snake Battle",
+      image: "/assets/slither-thumb.jpg",
+      tag: "Live Now",
+      pool: "Play & Earn XP",
+      gameId: "slither"
+    },
+    {
+      id: 2,
+      title: "Flappy Bird",
+      subtitle: "Classic Arcade Challenge",
+      image: "https://images.unsplash.com/photo-1551103782-8ab07afd45c1?q=80&w=2665&auto=format&fit=crop",
+      tag: "Arcade",
+      pool: "High Score Competition",
+      gameId: "flappy"
+    },
+    {
+      id: 3,
+      title: "More Games Coming Soon",
+      subtitle: "Stay Tuned for Updates",
+      image: "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?q=80&w=2665&auto=format&fit=crop",
+      tag: "Coming Soon",
+      pool: "New Releases"
+    }
+  ];
+
+  const FEATURED_COLLECTIONS = [
+    { id: 1, name: "Merry Pixelmas", status: "MINTING NOW", price: "0.0007 ETH", image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop" },
+    { id: 2, name: "AVALANCHE BATTLE PASS", status: "MINTING NOW", price: "0.00 AVX", image: "https://images.unsplash.com/photo-1635322966219-b75ed3a90164?w=800&auto=format&fit=crop" },
+    { id: 3, name: "Puffy Icons", status: "MINTING NOW", price: "0.009 ETH", image: "https://images.unsplash.com/photo-1642104704074-907c0698b98d?w=800&auto=format&fit=crop" }
+  ];
+
+  const CATEGORIES = ["All", "Action", "Strategy", "Puzzle", "Racing", "Shooter", "Sports"];
 
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      // Simple check if clicking outside logic handled largely by the event propagation, 
-      // but adding global listener is safer for "click outside" behavior
-      if (dropdownOpen && !e.target.closest('.user-dropdown-container')) {
-        setDropdownOpen(false);
+    const fetchGamesData = async () => {
+      try {
+        const response = await apiClient.getGames();
+        if (response.success && response.games.length > 0) {
+          setGames(response.games);
+        } else {
+          // Fallback if API fails/is empty
+          setGames([
+            { id: 'slither', title: 'Slither.io', category: 'Action', activePlayers: 1240, thumbnail: '/assets/slither-thumb.jpg' },
+            { id: 'flappy', title: 'Flappy Bird', category: 'Arcade', activePlayers: 850, thumbnail: '/assets/flappy-thumb.jpg' },
+            { id: 'whot', title: 'Naija Whot', category: 'Strategy', activePlayers: 540, thumbnail: '/assets/cards-thumb.jpg' },
+          ]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch games:", error);
       }
     };
+    fetchGamesData();
+  }, []);
 
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [dropdownOpen]);
+  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % FEATURED_SLIDES.length);
+  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + FEATURED_SLIDES.length) % FEATURED_SLIDES.length);
 
-  const filteredGames = currentFilter === 'all'
-    ? GAMES
-    : GAMES.filter(game => game.category === currentFilter);
+  const filteredGames = activeCategory === 'All'
+    ? games
+    : games.filter(g => g.category === activeCategory);
 
   return (
-    <div className="min-h-screen overflow-y-auto">
-      {/* HEADER */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl bg-black/10 border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-6 py-2 flex items-center justify-end">
-          {/* User Profile Button */}
-          <div className="relative user-dropdown-container">
-            <button
-              onClick={toggleDropdown}
-              className="user-profile-btn flex items-center gap-3 bg-white/10 backdrop-blur-md rounded-full p-1 md:pl-2 md:pr-4 md:py-1 border border-white/20 hover:bg-white/15 transition-all"
-            >
-              <div className="w-9 h-9 bg-gradient-to-tr from-cyan-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold">S</div>
-              <div className="hidden md:block text-left">
-                <p className="text-white font-semibold text-sm">Sal</p>
-                <p className="text-white/60 text-xs">Level 42 • 92K XP</p>
-              </div>
-            </button>
+    <div className="h-screen bg-[#09090B] text-white font-sans overflow-x-hidden px-6 pb-6">
 
-            {/* Mobile Dropdown Menu */}
-            <div className={`
-                                user-dropdown absolute right-0 top-full mt-2 w-72 
-                                transition-all duration-300 transform origin-top-right
-                                ${dropdownOpen ? 'opacity-100 visible pointer-events-auto scale-100' : 'opacity-0 invisible pointer-events-none scale-95'}
-                            `}>
-              <div className="bg-gray-900/80 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl overflow-hidden">
-                {/* User Info */}
-                <div className="p-6 border-b border-white/10">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="relative">
-                      <div className="w-16 h-16 bg-gradient-to-tr from-cyan-400 to-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg">
-                        S
-                      </div>
-                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-black flex items-center justify-center">
-                        <span className="text-white text-xs">✓</span>
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-white">Sal</h3>
-                      <p className="text-white/60 text-sm">0xabcd...sal</p>
-                    </div>
-                  </div>
-
-                  {/* Stats */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-white/70">Level</span>
-                      <span className="text-white font-semibold">42</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-white/70">XP</span>
-                      <span className="text-white font-semibold">92,000</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-white/70">Rank</span>
-                      <span className="bg-gradient-to-r from-amber-700 to-yellow-500 text-black px-2 py-0.5 rounded-full font-bold text-xs">Bronze</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Balance */}
-                <div className="p-4 border-b border-white/10 bg-gray-800/50">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Wallet size={16} className="text-yellow-400" />
-                    <span className="text-white/70 text-sm">Balance</span>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="bg-white/20 text-white px-3 py-1.5 rounded-full font-bold text-xs">10 USDC</span>
-                    <span className="bg-white/20 text-white px-3 py-1.5 rounded-full font-bold text-xs">9,234 EXP</span>
-                    <span className="bg-white/20 text-white px-3 py-1.5 rounded-full font-bold text-xs">599 stch</span>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="p-2">
-                  <button className="settings-btn w-full flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all">
-                    <Settings size={18} />
-                    <span className="font-medium">Settings</span>
-                  </button>
-                  <button className="logout-btn w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-all">
-                    <LogOut size={18} />
-                    <span className="font-medium">Logout</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* PLAYER DETAILS SECTION */}
-      <section className="relative min-h-[55vh] px-6 flex flex-col items-center justify-end">
-        {/* Background decorative */}
-        <div className="absolute top-0 w-full p-4">
-          <div className="h-[15rem] rounded-[20px] bg-white overflow-hidden">
-            <img src="/assets/stitch-bg.png" alt="bg" className="w-full h-full object-cover" />
+      {/* Top Navigation / Search Bar */}
+      <div className="sticky top-0 z-40 bg-[#09090B]/80 backdrop-blur-xl border-b border-[#27272A] -mx-6 px-8 py-4 flex items-center justify-between mb-8">
+        <div className="relative flex-1 max-w-2xl">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#71717A]" size={18} />
+          <input
+            type="text"
+            placeholder="Search games, tournaments, or players..."
+            className="w-full bg-[#121215] border border-[#27272A] rounded-full pl-12 pr-4 py-3 focus:outline-none focus:border-[#FF5D2E]/50 text-sm placeholder-[#52525B] transition-all"
+          />
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-[#52525B] text-[10px] font-mono border border-[#27272A] px-1.5 py-0.5 rounded">
+            <span>CTRL</span><span>K</span>
           </div>
         </div>
 
-        <div className="relative z-10 w-full max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
-
-          {/* Player Info Card */}
-          <div className="md:col-span-1 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl transform hover:scale-105 transition-all duration-500">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="w-18 h-18 bg-gradient-to-tr from-cyan-400 to-blue-600 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg">
-                  S
-                </div>
-                <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-green-500 rounded-full border-4 border-black flex items-center justify-center">
-                  <span className="text-white text-xs">✓</span>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-bold text-white">Sal</h3>
-                <p className="text-white/60 text-sm">0xabcd...sal</p>
-              </div>
-            </div>
-
-            {/* Rank Badge */}
-            <div className="mt-6 flex items-center justify-between">
-              <div className="flex flex-col items-center gap-1">
-                <span className="">42/100</span>
-              </div>
-              <span className="bg-gradient-to-r from-amber-700 to-yellow-500 text-black px-2 py-1 rounded-full font-bold text-sm">
-                Bronze
-              </span>
-            </div>
-
-            <div className="mt-2 flex items-center gap-2">
-              <span className="bg-white/30 border-white/10 truncate text-white px-2 py-1 rounded-full font-bold text-sm">
-                10 USDC
-              </span>
-              <span className="bg-white/30 border-white/10 truncate text-white px-2 py-1 rounded-full font-bold text-sm">
-                9,234 EXP
-              </span>
-              <span className="bg-white/30 border-white/10 truncate text-white px-2 py-1 rounded-full font-bold text-sm">
-                599 stch
-              </span>
-            </div>
+        <div className="flex items-center gap-4 pl-8">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-[#121215] border border-[#27272A] rounded-lg">
+            <div className="w-2 h-2 bg-[#10B981] rounded-full animate-pulse"></div>
+            <span className="text-xs font-bold text-[#A1A1AA]">24,892 Online</span>
           </div>
-
-          {/* Player Journey / Progress Card */}
-          <div className="md:col-span-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl overflow-hidden relative">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-2xl font-bold text-white">Your Journey</h3>
-              </div>
-              <Sparkles className="text-cyan-400 w-8 h-8" />
-            </div>
-
-            {/* Progress Bar */}
-            <div className="space-y-4">
-              <div className="flex justify-between text-sm">
-                <span className="text-white/80">Next reward:</span>
-                <span className="text-cyan-400 font-bold">87/100</span>
-              </div>
-
-              <div className="relative h-2 bg-white/10 rounded-full overflow-hidden border border-white/20">
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/30 to-purple-600/30 blur-xl"></div>
-                <div className="relative h-full w-[87%] bg-gradient-to-r from-cyan-400 to-purple-600 rounded-full flex items-center justify-end pr-4 transition-all duration-1000 ease-out">
-                </div>
-              </div>
-            </div>
-
-            {/* Next Milestone */}
-            <button className="btn-primary mt-6">
-              Buy Premium pass to get extra rewards
-            </button>
-          </div>
+          <button className="p-2 text-[#A1A1AA] hover:text-white bg-[#121215] border border-[#27272A] rounded-xl hover:bg-[#27272A] transition-all">
+            <Filter size={20} />
+          </button>
         </div>
-      </section>
+      </div>
 
-      <div className="max-w-5xl mx-auto py-12 px-5">
-        {/* Spotlight Games Section */}
-        <div className="bg-[#1d1d1d] p-6 rounded-[30px]">
-          <div className="w-full flex items-start md:items-center justify-between mb-12 gap-8">
-            <div>
-              <h2 className="text-lg md:text-3xl font-semi-bold tracking-tighter text-white">
-                Spotlight Games
+      <div className="max-w-[1600px] mx-auto space-y-12">
+
+        {/* HERO SECTION: Split Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[500px]">
+          {/* LEFT: Featured Carousel */}
+          <div className="lg:col-span-8 relative group rounded-3xl overflow-hidden border border-[#27272A]">
+            <div className="absolute inset-0">
+              <img
+                src={FEATURED_SLIDES[currentSlide].image}
+                alt="Cover"
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#09090B] via-[#09090B]/40 to-transparent"></div>
+            </div>
+
+            <div className="absolute bottom-0 left-0 w-full p-10 z-10 flex flex-col items-start">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="px-3 py-1 bg-[#FF5D2E] text-black text-xs font-bold rounded uppercase tracking-wider">
+                  {FEATURED_SLIDES[currentSlide].tag}
+                </span>
+                <span className="px-3 py-1 bg-black/50 backdrop-blur-md border border-white/10 text-white text-xs font-bold rounded flex items-center gap-2">
+                  <Trophy size={12} className="text-[#FFCE31]" />
+                  {FEATURED_SLIDES[currentSlide].pool}
+                </span>
+              </div>
+              <h2 className="text-5xl font-black mb-2 text-white drop-shadow-lg tracking-tight">
+                {FEATURED_SLIDES[currentSlide].title}
               </h2>
-              <p className="text-white/70 text-sm md:text-lg">Enjoy these highly curated Games.</p>
+              <p className="text-xl text-[#E4E4E7] mb-8 font-medium drop-shadow-md">
+                {FEATURED_SLIDES[currentSlide].subtitle}
+              </p>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => {
+                    const slide = FEATURED_SLIDES[currentSlide];
+                    if (slide.gameId) {
+                      navigate(`/game/${slide.gameId}`);
+                    }
+                  }}
+                  disabled={!FEATURED_SLIDES[currentSlide].gameId}
+                  className="btn-primary"
+                >
+                  <Play size={20} fill="currentColor" /> {FEATURED_SLIDES[currentSlide].gameId ? 'Play Now' : 'Coming Soon'}
+                </button>
+                <button className="btn">
+                  View Details
+                </button>
+              </div>
             </div>
 
-            <button className="bg-white text-black text-xs font-bold py-2 px-4 cursor-pointer hover:bg-white/70 rounded-full active:scale-98 transition-all duration-300 transform hover:-translate-y-1">
-              Explore
+            <button onClick={prevSlide} className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/30 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-black/80 cursor-pointer z-20">
+              <ChevronLeft size={20} />
+            </button>
+            <button onClick={nextSlide} className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/30 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-black/80 cursor-pointer z-20">
+              <ChevronRight size={20} />
             </button>
           </div>
 
-          {/* Games Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="gameGrid">
-            {filteredGames.map((game) => (
+          {/* RIGHT: Trending List */}
+          <div className="lg:col-span-4 bg-[#121215] border border-[#27272A] rounded-3xl p-6 flex flex-col h-full">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold flex items-center gap-2">
+                Trending <TrendingUp size={18} className="text-[#FF5D2E]" />
+              </h3>
+              <button className="text-xs font-bold text-[#A1A1AA] hover:text-white transition-colors">View All</button>
+            </div>
+            <div className="grid grid-cols-12 text-[10px] font-bold text-[#52525B] uppercase tracking-wider mb-4 px-2">
+              <div className="col-span-1">#</div>
+              <div className="col-span-6">Game</div>
+              <div className="col-span-3 text-right">Players</div>
+              <div className="col-span-2 text-right">24h</div>
+            </div>
+            <div className="flex-1 overflow-y-auto pr-2 space-y-1 custom-scrollbar">
+              {TRENDING_GAMES.map((game) => (
+                <div key={game.rank} className="grid grid-cols-12 items-center p-3 rounded-xl hover:bg-[#18181B] transition-colors cursor-pointer group border border-transparent hover:border-[#27272A]">
+                  <div className="col-span-1 font-mono text-[#A1A1AA] font-bold">{game.rank}</div>
+                  <div className="col-span-6 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-[#27272A] border border-[#3F3F46] flex flex-shrink-0 items-center justify-center overflow-hidden">
+                      <span className="text-xs">🎮</span>
+                    </div>
+                    <span className="font-bold text-sm text-[#E4E4E7] group-hover:text-white truncate">{game.name}</span>
+                  </div>
+                  <div className="col-span-3 text-right font-mono text-xs text-[#A1A1AA]">{game.players}</div>
+                  <div className={`col-span-2 text-right font-mono text-xs font-bold ${game.change.startsWith('+') ? 'text-[#10B981]' : 'text-[#EF4444]'}`}>
+                    {game.change}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* SPOTLIGHT GAMES SECTION (New Request) */}
+        <div className="rounded-[30px] p-6 bg-[#121215] border border-[#27272A]">
+          <h3 className="text-xl font-bold mb-4">Spotlight Games</h3>
+          <p className="text-[#A1A1AA] text-sm mb-6">Enjoy these highly curated experiences.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {games.slice(0, 3).map((game, index) => (
               <div
                 key={game.id}
                 onClick={() => navigate(`/game/${game.id}`)}
-                className="
-                                    group relative h-56 rounded-2xl overflow-hidden
-                                    border border-white/10 shadow-2xl
-                                    cursor-pointer transform-gpu
-                                    transition-all duration-500
-                                    hover:scale-105 hover:shadow-white/5 hover:border-white/15
-                                "
-                style={{
-                  backgroundImage: `url('${game.thumbnail}')`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center'
-                }}
+                className="relative overflow-hidden rounded-3xl border border-[#27272A] group cursor-pointer hover:border-[#FF5D2E]/50 h-[15rem] transition-all"
               >
-                <div className="absolute bottom-0 left-0 w-full h-full bg-gradient-to-t from-black/70 to-transparent transition-all duration-500"></div>
+                {/* Background Image */}
+                <div className="absolute inset-0 z-0">
+                  <img
+                    src="/assets/slither-thumb.jpg"
+                    alt={game.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                  {/* Dark gradient overlay for text readability */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent"></div>
+                </div>
 
-                <div className="relative h-full flex flex-col justify-between p-4 text-white z-10">
-                  <div className="w-full flex justify-end text-sm">
-                    <span className="bg-black/80 backdrop-blur-sm py-1 px-2 rounded-full flex items-center gap-2">
-                      <User size={12} />
-                      <span className="text-xs font-semibold">{game.players.toLocaleString()} Playing</span>
-                    </span>
+                {/* Header Badges */}
+                <div className="relative z-10 flex justify-between items-start p-6 mb-12">
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-[#FFCE31] text-black rounded-full text-xs font-bold shadow-lg">
+                    <Star size={12} fill="currentColor" /> Spotlight
                   </div>
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-white text-black rounded-full text-xs font-bold shadow-lg">
+                    <TrendingUp size={12} /> {game.activePlayers || '0'}
+                  </div>
+                </div>
 
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between bg-white/20 backdrop-blur-sm p-2 rounded-[15px] ">
-                      <div className="flex items-center gap-2">
-                        <span className="bg-black/50 p-2 flex items-center justify-center rounded-[5px]">
-                          <span className="text-xl">{game.icon}</span>
-                        </span>
-                        <div>
-                          <h3 className="text-xs font-semi-bold drop-shadow-lg">
-                            {game.title}
-                          </h3>
-                          <span className="text-xs font-semibold">
-                            {game.category.toUpperCase()}
-                          </span>
-                        </div>
-                      </div>
-
-                      <button className="play-btn px-4 py-2 rounded-full text-xs font-bold text-black
-                                                bg-white hover:bg-white/70 active:scale-98
-                                                transition-all duration-300 transform hover:-translate-y-1"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/game/${game.id}`);
-                        }}
-                      >
-                        Play Now
-                      </button>
+                {/* Content */}
+                <div className="absolute bottom-0 left-0 right-0 z-10 p-6 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center text-2xl border border-white/10">
+                      {index === 0 ? '🐍' : index === 1 ? '🦅' : '🎮'}
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold text-white drop-shadow-lg">{game.title}</h4>
+                      <p className="text-xs text-white/80 drop-shadow-md">{game.category}</p>
                     </div>
                   </div>
+                  <button className="btn">
+                    <Play size={14} fill="currentColor" /> Play
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* FEATURED COLLECTIONS SECTION (Highest Weekly Sales Style) */}
+        <div>
+          <h3 className="text-xl font-bold mb-4">Featured Events</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {FEATURED_COLLECTIONS.map((item) => (
+              <div key={item.id} className="group relative h-64 rounded-2xl overflow-hidden border border-[#27272A] cursor-pointer">
+                <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-90"></div>
+                <div className="absolute bottom-0 left-0 w-full p-6">
+                  <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-[#10B981] text-black text-[10px] font-bold rounded mb-2">
+                    <span className="w-1.5 h-1.5 bg-black rounded-full animate-pulse"></span>
+                    {item.status}
+                  </div>
+                  <h4 className="text-xl font-bold mb-1 group-hover:text-[#FF5D2E] transition-colors">{item.name}</h4>
+                  <div className="text-sm font-mono text-[#A1A1AA]">{item.price}</div>
                 </div>
               </div>
             ))}

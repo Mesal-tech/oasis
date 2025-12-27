@@ -91,55 +91,6 @@ export class GameScene extends Phaser.Scene {
     // === UI SETUP ===
     this.ui = new UI(this);
 
-    // === BOT SNAKES ===
-    const skins = ['default', 'fire', 'galaxy', 'gold'];
-    const minDistanceFromEdge = 400; // Minimum distance from arena edge
-    const minDistanceFromOthers = 300; // Minimum distance from other snakes
-    const maxSpawnAttempts = 50; // Maximum attempts to find valid spawn position
-
-    for (let i = 0; i < 20; i++) {
-      let botX, botY;
-      let validPosition = false;
-      let attempts = 0;
-
-      // Keep trying to find a valid spawn position
-      while (!validPosition && attempts < maxSpawnAttempts) {
-        attempts++;
-
-        // Generate random position within safe zone (away from edge)
-        const angle = Math.random() * Math.PI * 2;
-        const maxDistance = this.arenaRadius - minDistanceFromEdge;
-        const distance = Math.random() * maxDistance;
-
-        botX = this.arenaCenterX + Math.cos(angle) * distance;
-        botY = this.arenaCenterY + Math.sin(angle) * distance;
-
-        // Check distance from all existing snakes
-        validPosition = true;
-        for (const existingSnake of this.snakes) {
-          const head = existingSnake.segments[0];
-          const dist = Math.hypot(botX - head.x, botY - head.y);
-
-          if (dist < minDistanceFromOthers) {
-            validPosition = false;
-            break;
-          }
-        }
-      }
-
-      // If we found a valid position (or exhausted attempts), spawn the bot
-      if (validPosition) {
-        const bot = new Snake(
-          this,
-          botX,
-          botY,
-          skins[i % skins.length]
-        );
-
-        this.snakes.push(bot);
-      }
-    }
-
     // === FOOD (PELLETS) ===
     this.targetFoodCount = 400; // Target number of pellets
     this.spawnInitialFood();
