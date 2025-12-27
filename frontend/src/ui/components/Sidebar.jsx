@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Home, Trophy, ShoppingBag, Gift, LogOut, Wallet, Sparkles, Swords, Gamepad2 } from 'lucide-react';
 import { usePlayer } from '../../state/PlayerContext';
 import { LoginButton } from '../../components/LoginButton';
+import { UserProfileModal } from './UserProfileModal';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: Home, href: '/' },
@@ -17,6 +18,7 @@ export const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { player } = usePlayer(); // Use PlayerContext instead of userStore
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   return (
     <>
@@ -35,7 +37,11 @@ export const Sidebar = () => {
             </div>
           </div>
 
-          <div className="p-4 bg-[#18181B] border border-[#27272A] rounded-2xl mb-2">
+          {/* User Profile Card */}
+          <div
+            className="p-4 bg-[#18181B] border border-[#27272A] rounded-2xl mb-2 cursor-pointer hover:bg-[#1F1F23] transition-all hover:border-[#FF5D2E]/30"
+            onClick={() => setShowProfileModal(true)}
+          >
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 bg-gradient-to-br from-[#FF5D2E] to-[#FF8C5D] rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
                 {player?.username?.[0]?.toUpperCase() || 'P'}
@@ -120,6 +126,13 @@ export const Sidebar = () => {
           </div>
         </nav>
       </div>
+
+      {/* User Profile Modal */}
+      <UserProfileModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        player={player}
+      />
     </>
   );
 };
