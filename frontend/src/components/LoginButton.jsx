@@ -37,10 +37,12 @@ export const LoginButton = () => {
 
     return (
         <button
+            title="Login With Privy"
             onClick={handleLogin}
-            className="px-6 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors shadow-lg shadow-blue-500/20"
+            className="w-full cursor-pointer flex items-center justify-center gap-2 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors shadow-lg shadow-blue-500/20"
         >
-            Login
+            <img src="/assets/misc/privy.svg" className="w-5 h-5" />
+            <span>Login</span>
         </button>
     );
 };

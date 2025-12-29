@@ -21,8 +21,8 @@ ReactDOM.createRoot(document.getElementById('app')).render(
         config={{
           loginMethods: ['email', 'wallet', 'google', 'twitter', 'discord'],
           appearance: {
-            theme: 'light',
-            accentColor: '#676FFF',
+            theme: 'dark',
+            accentColor: '#FF5D2E',
           },
         }}
       >

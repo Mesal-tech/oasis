@@ -42,6 +42,15 @@ export const MainLobby = () => {
     },
     {
       id: 3,
+      title: "Checkers",
+      subtitle: "Strategic Board Battles",
+      image: "/assets/checkers-thumb.jpg",
+      tag: "Board",
+      pool: "Play PvP or AI",
+      gameId: "checkers"
+    },
+    {
+      id: 4,
       title: "More Games Coming Soon",
       subtitle: "Stay Tuned for Updates",
       image: "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?q=80&w=2665&auto=format&fit=crop",
@@ -69,6 +78,7 @@ export const MainLobby = () => {
           setGames([
             { id: 'slither', title: 'Slither.io', category: 'Action', activePlayers: 1240, thumbnail: '/assets/slither-thumb.jpg' },
             { id: 'flappy', title: 'Flappy Bird', category: 'Arcade', activePlayers: 850, thumbnail: '/assets/flappy-thumb.jpg' },
+            { id: 'checkers', title: 'Checkers', category: 'Board', activePlayers: 100, thumbnail: '/assets/checkers-thumb.jpg' },
             { id: 'whot', title: 'Naija Whot', category: 'Strategy', activePlayers: 540, thumbnail: '/assets/cards-thumb.jpg' },
           ]);
         }

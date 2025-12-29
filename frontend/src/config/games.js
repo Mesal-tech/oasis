@@ -40,6 +40,16 @@ const GAMES = [
     earnRate: '1.2x',
     thumbnail: '/assets/cards-thumb.png'
   },
+  {
+    id: 'checkers',
+    title: 'Checkers',
+    icon: '🔴',
+    description: 'Classic strategy board game',
+    category: 'board',
+    players: 100,
+    earnRate: '1x',
+    thumbnail: '/assets/checkers-thumb.jpg'
+  },
 ];
 
 export default GAMES;

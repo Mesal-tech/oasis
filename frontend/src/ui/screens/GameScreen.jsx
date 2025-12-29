@@ -1,5 +1,6 @@
 import { usePlayer } from '../../state/PlayerContext';
 import React, { useEffect, useRef, useState } from 'react';
+import { createRoot } from 'react-dom/client';
 import { useParams, useNavigate } from 'react-router-dom';
 import { User, Settings, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import GAMES from '../../config/games.js';
@@ -197,6 +198,7 @@ export const GameScreen = () => {
   // Phaser refs
   const gameContainerRef = useRef(null);
   const gameInstanceRef = useRef(null);
+  const reactRootRef = useRef(null);
   const gameStartTimeRef = useRef(null); // Use ref instead of state for start time
 
   useEffect(() => {
@@ -210,6 +212,10 @@ export const GameScreen = () => {
       if (gameInstanceRef.current) {
         if (gameInstanceRef.current.stop) gameInstanceRef.current.stop();
         gameInstanceRef.current = null;
+      }
+      if (reactRootRef.current) {
+        reactRootRef.current.unmount();
+        reactRootRef.current = null;
       }
     };
   }, []);
@@ -383,6 +389,27 @@ export const GameScreen = () => {
               });
             }
           }, 500);
+
+        } else if (gameData.id === 'checkers') {
+          // Checkers Integration
+          await import('../../games/checkers/index.css'); // Ensure styles are loaded
+          const mod = await import('../../games/checkers/ui/App');
+          const CheckersApp = mod.App;
+
+          const d = document.createElement('div');
+          d.id = 'checkers-root';
+          d.style.width = '100%';
+          d.style.height = '100%';
+          container.appendChild(d);
+
+          const root = createRoot(d);
+          root.render(<CheckersApp />);
+          reactRootRef.current = root;
+
+          // Note: Checkers uses its own PhaserGame component which manages the game instance.
+          // We don't have direct access to 'game' here to attach listeners easily unless we architect it.
+          // For now, this gets the game running.
+
         } else {
           // Placeholder
           container.innerHTML = '<div className="text-white text-center pt-20">Coming Soon</div>';
