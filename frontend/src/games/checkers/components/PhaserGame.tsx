@@ -17,12 +17,15 @@ export const PhaserGame: React.FC<PhaserGameProps> = ({ onGameCreated }) => {
         // Prevent creating two games in strict mode
         if (gameRef.current) return;
 
-        const config: Phaser.Types.Core.GameConfig = {
+        const config: any = {
             type: Phaser.AUTO,
             width: window.innerWidth,
             height: window.innerHeight,
             parent: gameContainerRef.current,
             backgroundColor: '#2d2d2d',
+            resolution: window.devicePixelRatio || 1,
+            pixelArt: false,
+            antialias: true,
             scale: {
                 mode: Phaser.Scale.RESIZE,
                 autoCenter: Phaser.Scale.CENTER_BOTH
