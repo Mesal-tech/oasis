@@ -1,4 +1,4 @@
-# Web3 Multi-Game Arcade Platform - Complete Folder Structure
+# Oasis Platform - Complete Folder Structure
 
 ## Project Root
 ```
