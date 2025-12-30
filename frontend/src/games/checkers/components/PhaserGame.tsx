@@ -19,12 +19,12 @@ export const PhaserGame: React.FC<PhaserGameProps> = ({ onGameCreated }) => {
 
         const config: Phaser.Types.Core.GameConfig = {
             type: Phaser.AUTO,
-            width: 800,
-            height: 800,
+            width: window.innerWidth,
+            height: window.innerHeight,
             parent: gameContainerRef.current,
             backgroundColor: '#2d2d2d',
             scale: {
-                mode: Phaser.Scale.FIT,
+                mode: Phaser.Scale.RESIZE,
                 autoCenter: Phaser.Scale.CENTER_BOTH
             },
             dom: {

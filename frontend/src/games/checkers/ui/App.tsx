@@ -27,7 +27,7 @@ export const App: React.FC = () => {
 
     return (
         <div className="checkers-app">
-            <div id="app-wrapper" className="relative w-[100vmin] h-[100vmin] max-w-[800px] max-h-[800px]" style={{ position: 'relative', width: '100vmin', height: '100vmin', maxWidth: '800px', maxHeight: '800px' }}>
+            <div id="app-wrapper" className="relative w-full h-full" style={{ position: 'relative', width: '100%', height: '100%' }}>
                 <PhaserGame onGameCreated={setGame} />
 
                 <div className="ui-overlay absolute top-0 left-0 w-full h-full pointer-events-none" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
