@@ -96,55 +96,62 @@ export const MarketplaceScreen = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#09090B] text-white p-8 overflow-y-auto font-sans">
+    <div className="min-h-screen bg-[#09090B] text-white px-4 sm:px-6 lg:px-8 py-6 lg:py-8 overflow-y-auto font-sans">
       {/* Header */}
-      <div className="max-w-7xl mx-auto flex justify-between items-center mb-12">
+      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 lg:mb-12 gap-6 lg:gap-0">
         <div>
           <div className="flex items-center gap-2 text-[#FF5D2E] text-sm font-bold mb-2">
             <ShoppingBag size={16} /> / Store
           </div>
-          <h1 className="text-4xl font-bold mb-2">Marketplace</h1>
-          <p className="text-[#A1A1AA]">Upgrade your experience with exclusive items.</p>
+          <h1 className="text-3xl lg:text-4xl font-bold mb-2">Marketplace</h1>
+          <p className="text-[#A1A1AA] text-sm lg:text-base">Upgrade your experience with exclusive items.</p>
         </div>
 
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-3 bg-[#121215] border border-[#27272A] px-4 py-2 rounded-xl">
-            <Search size={18} className="text-[#71717A]" />
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 lg:gap-6 w-full lg:w-auto">
+          <div className="relative flex-1 sm:flex-initial">
+            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#71717A]" />
             <input
               type="text"
               placeholder="Search items..."
-              className="bg-transparent border-none outline-none text-sm w-48 placeholder-[#52525B]"
+              className="w-full bg-[#121215] border border-[#27272A] pl-12 pr-4 py-3 rounded-xl focus:outline-none focus:border-[#FF5D2E]/50 text-sm placeholder-[#52525B]"
             />
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <div className="text-[10px] font-bold text-[#A1A1AA] uppercase">Balance</div>
-              <div className="text-xl font-bold font-mono">{(player?.balance || 5000).toLocaleString()} <span className="text-[#FF5D2E] text-sm">STCH</span></div>
+          <div className="flex items-center gap-6 bg-[#121215] border border-[#27272A] px-5 py-3 rounded-xl">
+            <div className="text-center sm:text-right">
+              <div className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-wider">Balance</div>
+              <div className="text-lg lg:text-xl font-bold font-mono">
+                {(player?.balance || 5000).toLocaleString()} <span className="text-[#FF5D2E] text-sm">STCH</span>
+              </div>
             </div>
-            <div className="text-right border-l border-[#27272A] pl-4">
-              <div className="text-[10px] font-bold text-[#A1A1AA] uppercase">Wallet</div>
-              <div className="text-xl font-bold font-mono">{(player?.stch || 10).toFixed(2)} <span className="text-white text-sm">USDC</span></div>
+            <div className="hidden sm:block w-px h-10 bg-[#27272A]" />
+            <div className="text-center sm:text-right">
+              <div className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-wider">Wallet</div>
+              <div className="text-lg lg:text-xl font-bold font-mono">
+                {(player?.stch || 10).toFixed(2)} <span className="text-white text-sm">USDC</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Categories */}
-      <div className="max-w-7xl mx-auto flex gap-4 mb-10 overflow-x-auto pb-2">
-        {categories.map(cat => (
-          <button
-            key={cat.id}
-            onClick={() => setSelectedCategory(cat.id)}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all border ${selectedCategory === cat.id
+      <div className="max-w-7xl mx-auto mb-8 lg:mb-10">
+        <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 lg:-mx-0 lg:px-0 no-scrollbar">
+          {categories.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all border whitespace-nowrap min-w-fit ${selectedCategory === cat.id
                 ? 'bg-white text-black border-white'
                 : 'bg-[#121215] text-[#71717A] border-[#27272A] hover:border-[#52525B]'
-              }`}
-          >
-            {selectedCategory === cat.id && <div className="w-1.5 h-1.5 rounded-full bg-black"></div>}
-            {cat.name}
-          </button>
-        ))}
+                }`}
+            >
+              {selectedCategory === cat.id && <div className="w-1.5 h-1.5 rounded-full bg-black"></div>}
+              {cat.name}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Grid */}
@@ -158,13 +165,13 @@ export const MarketplaceScreen = () => {
             </div>
 
             {/* Image Placeholder */}
-            <div className="w-full h-40 bg-[#18181B] rounded-xl mb-6 flex items-center justify-center text-6xl group-hover:scale-105 transition-transform duration-500">
+            <div className="w-full h-40 lg:h-40 bg-[#18181B] rounded-xl mb-6 flex items-center justify-center text-6xl group-hover:scale-105 transition-transform duration-500">
               {item.image}
             </div>
 
             <div className="mb-6">
               <h3 className="text-lg font-bold mb-2">{item.name}</h3>
-              <p className="text-[#71717A] text-xs leading-relaxed h-10 line-clamp-2">{item.description}</p>
+              <p className="text-[#71717A] text-xs leading-relaxed line-clamp-2">{item.description}</p>
             </div>
 
             <div className="flex items-center justify-between pt-6 border-t border-[#27272A]">
