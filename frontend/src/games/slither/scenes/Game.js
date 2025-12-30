@@ -3,12 +3,18 @@ import Phaser from 'phaser';
 import Snake from '../entities/Snake.js';
 import Pellet from '../entities/Pellet.js';
 import UI from './UI.js';
+import { SpatialGrid, ObjectPool } from '../utils/PerformanceUtils.js';
 
 export class GameScene extends Phaser.Scene {
   constructor() {
     super({ key: 'Game' });
     this.snakes = [];
     this.foods = [];
+
+    // Performance optimization
+    this.updateCounter = 0;
+    this.spatialGrid = null;
+    this.pelletPool = null;
   }
 
   preload() {
@@ -43,6 +49,19 @@ export class GameScene extends Phaser.Scene {
     this.arenaRadius = 2000; // Circular boundary radius
     this.arenaCenterX = worldWidth / 2;
     this.arenaCenterY = worldHeight / 2;
+
+    // Initialize spatial grid for efficient collision detection
+    this.spatialGrid = new SpatialGrid(worldWidth, worldHeight, 200);
+
+    // Initialize object pool for pellets
+    this.pelletPool = new ObjectPool(
+      () => new Pellet(this, 0, 0),
+      (pellet) => {
+        pellet.container.setVisible(false);
+        pellet.container.setActive(false);
+      },
+      100 // Pre-create 100 pellets
+    );
 
     // Create a tiled background
     const bg = this.add.tileSprite(0, 0, worldWidth, worldHeight, 'tile');
@@ -92,12 +111,12 @@ export class GameScene extends Phaser.Scene {
     this.ui = new UI(this);
 
     // === FOOD (PELLETS) ===
-    this.targetFoodCount = 400; // Target number of pellets
+    this.targetFoodCount = 250; // Reduced from 400 for better performance
     this.spawnInitialFood();
 
-    // Set up continuous food spawning
+    // Set up continuous food spawning (less frequent)
     this.time.addEvent({
-      delay: 100, // Check every 100ms
+      delay: 500, // Reduced frequency from 100ms to 500ms
       callback: this.maintainFoodSupply,
       callbackScope: this,
       loop: true
@@ -119,8 +138,8 @@ export class GameScene extends Phaser.Scene {
 
   // Spawn initial food distribution
   spawnInitialFood() {
-    const numberOfClusters = 30; // Number of clusters to spawn (reduced from 60)
-    const pelletsPerCluster = Phaser.Math.Between(4, 7); // Pellets per cluster (reduced from 5-10)
+    const numberOfClusters = 25; // Further reduced for performance
+    const pelletsPerCluster = Phaser.Math.Between(3, 6); // Reduced pellet density
 
     for (let i = 0; i < numberOfClusters; i++) {
       // Random cluster center position within arena
@@ -195,7 +214,37 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(time, delta) {
-    // 1. CHECK ARENA BOUNDARY COLLISIONS
+    this.updateCounter++;
+
+    // Rebuild spatial grid every 3 frames instead of every frame for better performance
+    if (this.updateCounter % 3 === 0) {
+      this.spatialGrid.clear();
+
+      // Insert all snake segments into spatial grid
+      this.snakes.forEach(snake => {
+        if (!snake.isDead) {
+          snake.segments.forEach(seg => {
+            this.spatialGrid.insert(seg, seg.x, seg.y);
+          });
+        }
+      });
+
+      // Insert food into spatial grid
+      this.foods.forEach(food => {
+        if (food.container && !food.destroyed) {
+          this.spatialGrid.insert(food, food.container.x, food.container.y);
+        }
+      });
+    }
+
+    // 1. UPDATE ALL SNAKES
+    this.snakes.forEach(snake => {
+      if (!snake.isDead) {
+        snake.update(delta);
+      }
+    });
+
+    // 2. CHECK ARENA BOUNDARY COLLISIONS
     this.snakes.forEach(snake => {
       if (snake.isDead) return;
 
@@ -212,98 +261,100 @@ export class GameScene extends Phaser.Scene {
       }
     });
 
-    // 2. UPDATE BOT AI
-    this.snakes.forEach(snake => {
-      if (snake.isDead || snake.isPlayer) return;
+    // 3. UPDATE BOT AI (throttled - every 3 frames for better performance)
+    if (this.updateCounter % 3 === 0) {
+      this.snakes.forEach(snake => {
+        if (snake.isDead || snake.isPlayer) return;
 
-      const head = snake.segments[0];
+        const head = snake.segments[0];
 
-      // Check distance from arena center for boundary avoidance
-      const distFromCenter = Math.hypot(
-        head.x - this.arenaCenterX,
-        head.y - this.arenaCenterY
-      );
-      const boundaryProximity = distFromCenter / this.arenaRadius;
-
-      // Find threats and food
-      const threat = snake.findNearestThreat(this.snakes);
-      const food = snake.findNearestFood(this.foods);
-
-      // Calculate urgency of threat (0 to 1)
-      const threatUrgency = threat.distance < 200 ?
-        Math.max(0, 1 - threat.distance / 200) : 0;
-
-      // BOUNDARY AVOIDANCE (highest priority)
-      if (boundaryProximity > 0.85) {
-        // Calculate angle toward center
-        const angleToCenter = Math.atan2(
-          this.arenaCenterY - head.y,
-          this.arenaCenterX - head.x
+        // Check distance from arena center for boundary avoidance
+        const distFromCenter = Math.hypot(
+          head.x - this.arenaCenterX,
+          head.y - this.arenaCenterY
         );
+        const boundaryProximity = distFromCenter / this.arenaRadius;
 
-        const boundaryUrgency = (boundaryProximity - 0.85) / 0.15;
-        const turnSpeed = 0.1 + (boundaryUrgency * 0.15);
+        // Find threats and food
+        const threat = snake.findNearestThreat(this.snakes);
+        const food = snake.findNearestFood(this.foods);
 
-        snake.targetAngle = Phaser.Math.Angle.RotateTo(
-          snake.targetAngle,
-          angleToCenter,
-          turnSpeed
-        );
+        // Calculate urgency of threat (0 to 1)
+        const threatUrgency = threat.distance < 200 ?
+          Math.max(0, 1 - threat.distance / 200) : 0;
 
-        // Boost away from boundary if very close
-        if (boundaryProximity > 0.95 && Math.random() < 0.2) {
-          snake.startBoost();
-          this.time.delayedCall(400, () => snake.endBoost());
+        // BOUNDARY AVOIDANCE (highest priority)
+        if (boundaryProximity > 0.85) {
+          // Calculate angle toward center
+          const angleToCenter = Math.atan2(
+            this.arenaCenterY - head.y,
+            this.arenaCenterX - head.x
+          );
+
+          const boundaryUrgency = (boundaryProximity - 0.85) / 0.15;
+          const turnSpeed = 0.1 + (boundaryUrgency * 0.15);
+
+          snake.targetAngle = Phaser.Math.Angle.RotateTo(
+            snake.targetAngle,
+            angleToCenter,
+            turnSpeed
+          );
+
+          // Boost away from boundary if very close
+          if (boundaryProximity > 0.95 && Math.random() < 0.2) {
+            snake.startBoost();
+            this.time.delayedCall(400, () => snake.endBoost());
+          }
+        } else if (threat.angle !== null && threatUrgency > 0.3) {
+          // AVOID THREAT - Calculate escape angle
+          const avoidAngle = threat.angle + Math.PI; // Opposite direction from threat center
+
+          // Add some perpendicular movement for more natural avoidance
+          const perpendicularOffset = Math.sin(time * 0.002) * 0.5;
+          const finalAvoidAngle = avoidAngle + perpendicularOffset;
+
+          // Stronger avoidance when threat is closer
+          const turnSpeed = 0.08 + (threatUrgency * 0.12);
+
+          snake.targetAngle = Phaser.Math.Angle.RotateTo(
+            snake.targetAngle,
+            finalAvoidAngle,
+            turnSpeed
+          );
+
+          // Boost when in danger
+          if (threatUrgency > 0.6 && Math.random() < 0.1) {
+            snake.startBoost();
+            this.time.delayedCall(300, () => snake.endBoost());
+          }
+        } else if (food.angle !== null && food.distance < 300) {
+          // PURSUE FOOD - but be more cautious
+          const foodWeight = Math.max(0.3, 1 - food.distance / 300);
+          const turnSpeed = 0.05 * foodWeight;
+
+          snake.targetAngle = Phaser.Math.Angle.RotateTo(
+            snake.targetAngle,
+            food.angle,
+            turnSpeed
+          );
+
+          // Only boost for close food when safe
+          if (food.distance < 100 && threatUrgency < 0.2 && Math.random() < 0.03) {
+            snake.startBoost();
+            this.time.delayedCall(400, () => snake.endBoost());
+          }
+        } else {
+          // WANDER - smooth random movements
+          if (Math.random() < 0.008) {
+            const currentAngle = snake.targetAngle;
+            const randomOffset = Phaser.Math.FloatBetween(-0.6, 0.6);
+            snake.targetAngle = currentAngle + randomOffset;
+          }
         }
-      } else if (threat.angle !== null && threatUrgency > 0.3) {
-        // AVOID THREAT - Calculate escape angle
-        const avoidAngle = threat.angle + Math.PI; // Opposite direction from threat center
+      });
+    }
 
-        // Add some perpendicular movement for more natural avoidance
-        const perpendicularOffset = Math.sin(time * 0.002) * 0.5;
-        const finalAvoidAngle = avoidAngle + perpendicularOffset;
-
-        // Stronger avoidance when threat is closer
-        const turnSpeed = 0.08 + (threatUrgency * 0.12);
-
-        snake.targetAngle = Phaser.Math.Angle.RotateTo(
-          snake.targetAngle,
-          finalAvoidAngle,
-          turnSpeed
-        );
-
-        // Boost when in danger
-        if (threatUrgency > 0.6 && Math.random() < 0.1) {
-          snake.startBoost();
-          this.time.delayedCall(300, () => snake.endBoost());
-        }
-      } else if (food.angle !== null && food.distance < 300) {
-        // PURSUE FOOD - but be more cautious
-        const foodWeight = Math.max(0.3, 1 - food.distance / 300);
-        const turnSpeed = 0.05 * foodWeight;
-
-        snake.targetAngle = Phaser.Math.Angle.RotateTo(
-          snake.targetAngle,
-          food.angle,
-          turnSpeed
-        );
-
-        // Only boost for close food when safe
-        if (food.distance < 100 && threatUrgency < 0.2 && Math.random() < 0.03) {
-          snake.startBoost();
-          this.time.delayedCall(400, () => snake.endBoost());
-        }
-      } else {
-        // WANDER - smooth random movements
-        if (Math.random() < 0.008) {
-          const currentAngle = snake.targetAngle;
-          const randomOffset = Phaser.Math.FloatBetween(-0.6, 0.6);
-          snake.targetAngle = currentAngle + randomOffset;
-        }
-      }
-    });
-
-    // 3. CHECK SNAKE-TO-SNAKE COLLISIONS
+    // 4. CHECK SNAKE-TO-SNAKE COLLISIONS
     for (let i = 0; i < this.snakes.length; i++) {
       const snake1 = this.snakes[i];
       if (snake1.isDead) continue;
@@ -321,7 +372,7 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    // 4. LET EVERY SNAKE CHECK FOR NEARBY FOOD
+    // 5. LET EVERY SNAKE CHECK FOR NEARBY FOOD
     this.snakes.forEach(snake => {
       if (snake.isDead) return;
 
@@ -333,13 +384,7 @@ export class GameScene extends Phaser.Scene {
       });
     });
 
-    // 5. UPDATE ALL SNAKES (movement)
-    this.snakes.forEach(snake => {
-      if (!snake.isDead) {
-        snake.update(delta);
-      }
-    });
-
+    // 5. CLEAN UP DESTROYED FOOD
     // 6. CLEAN UP DESTROYED FOOD
     this.foods = this.foods.filter(p => !p.destroyed);
 
@@ -347,7 +392,7 @@ export class GameScene extends Phaser.Scene {
     this.snakes = this.snakes.filter(s => !s.isDead);
 
     // 8. SPAWN NEW BOTS IF NEEDED
-    if (this.snakes.length < 25) {
+    if (this.snakes.length < 15) { // Reduced from 25 for better performance
       if (Math.random() < 0.05) { // Small chance per frame to spawn a new bot
         this.spawnBot();
       }

@@ -25,14 +25,14 @@ export const UserProfileModal = ({ isOpen, onClose, player }) => {
   ];
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Player Profile" maxWidth="max-w-6xl">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <Modal isOpen={isOpen} onClose={onClose} maxWidth="max-w-6xl">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* LEFT COLUMN: Wallet & Game Assets */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Wallet Balance */}
-          <div className="p-6 bg-gradient-to-br from-[#FF5D2E]/10 to-[#FF8C5D]/10 border border-[#FF5D2E]/20 rounded-2xl">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-[#FF5D2E]/20 rounded-xl flex items-center justify-center">
+          <div className="p-4 bg-gradient-to-br from-[#FF5D2E]/10 to-[#FF8C5D]/10 border border-[#FF5D2E]/20 rounded-2xl">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-[#FF5D2E]/20 rounded-xl flex items-center justify-center">
                 <Wallet size={24} className="text-[#FF5D2E]" />
               </div>
               <div>
@@ -44,8 +44,8 @@ export const UserProfileModal = ({ isOpen, onClose, player }) => {
             </div>
 
             {/* Balance Cards */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-4 bg-[#18181B] border border-[#27272A] rounded-xl">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="p-3 bg-[#18181B] border border-[#27272A] rounded-xl">
                 <div className="flex items-center gap-2 mb-2">
                   <Coins size={16} className="text-[#FFCE31]" />
                   <span className="text-xs text-[#71717A] uppercase font-bold">Tokens</span>
@@ -54,7 +54,7 @@ export const UserProfileModal = ({ isOpen, onClose, player }) => {
                 <div className="text-xs text-[#A1A1AA] mt-1">Game Currency</div>
               </div>
 
-              <div className="p-4 bg-[#18181B] border border-[#27272A] rounded-xl">
+              <div className="p-3 bg-[#18181B] border border-[#27272A] rounded-xl">
                 <div className="flex items-center gap-2 mb-2">
                   <DollarSign size={16} className="text-green-500" />
                   <span className="text-xs text-[#71717A] uppercase font-bold">Balance</span>
@@ -66,65 +66,16 @@ export const UserProfileModal = ({ isOpen, onClose, player }) => {
           </div>
 
           {/* NFTs & Skins */}
-          <div className="p-6 bg-[#18181B] border border-[#27272A] rounded-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Package size={20} className="text-[#FF5D2E]" />
-                <h4 className="text-sm font-bold text-white uppercase">My Assets</h4>
-              </div>
-              <span className="text-xs text-[#71717A] font-bold">{mockNFTs.length} Items</span>
-            </div>
+          
 
-            <div className="space-y-3 max-h-[300px] overflow-y-auto">
-              {mockNFTs.map((nft) => (
-                <div key={nft.id} className="flex items-center gap-3 p-3 bg-[#09090B] border border-[#27272A] rounded-xl hover:border-[#FF5D2E]/30 transition-all cursor-pointer">
-                  <div className="w-12 h-12 bg-gradient-to-br from-[#FF5D2E]/20 to-[#FF8C5D]/20 rounded-lg overflow-hidden flex-shrink-0">
-                    <img src={nft.image} alt={nft.name} className="w-full h-full object-cover" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-bold text-white truncate">{nft.name}</div>
-                    <div className="text-xs text-[#71717A]">{nft.type}</div>
-                  </div>
-                  <div className={`text-xs px-2 py-1 rounded-lg font-bold ${nft.rarity === 'Legendary' ? 'bg-[#FFCE31]/20 text-[#FFCE31]' :
-                      nft.rarity === 'Epic' ? 'bg-purple-500/20 text-purple-400' :
-                        'bg-blue-500/20 text-blue-400'
-                    }`}>
-                    {nft.rarity}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <button className="w-full mt-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-sm font-bold rounded-lg transition-all">
-              View All Assets
-            </button>
-          </div>
-
-          {/* Quick Stats */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-4 bg-[#18181B] border border-[#27272A] rounded-xl">
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles size={16} className="text-[#FF5D2E]" />
-                <span className="text-xs text-[#71717A] uppercase font-bold">Skins Owned</span>
-              </div>
-              <div className="text-2xl font-black text-white">{mockNFTs.filter(n => n.type === 'Skin').length}</div>
-            </div>
-
-            <div className="p-4 bg-[#18181B] border border-[#27272A] rounded-xl">
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp size={16} className="text-green-500" />
-                <span className="text-xs text-[#71717A] uppercase font-bold">Net Worth</span>
-              </div>
-              <div className="text-2xl font-black text-white">${((player.balance || 0) + (player.tokens || 0) * 0.01).toFixed(2)}</div>
-            </div>
-          </div>
+          
         </div>
 
         {/* RIGHT COLUMN: Profile Details */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Profile Header */}
-          <div className="flex items-center gap-6 p-6 bg-gradient-to-br from-[#FF5D2E]/10 to-[#FF8C5D]/10 border border-[#FF5D2E]/20 rounded-2xl">
-            <div className="w-24 h-24 bg-gradient-to-br from-[#FF5D2E] to-[#FF8C5D] rounded-2xl flex items-center justify-center text-white font-black text-4xl shadow-2xl shadow-[#FF5D2E]/30">
+          <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-[#FF5D2E]/10 to-[#FF8C5D]/10 border border-[#FF5D2E]/20 rounded-2xl">
+            <div className="w-20 h-20 bg-gradient-to-br from-[#FF5D2E] to-[#FF8C5D] rounded-2xl flex items-center justify-center text-white font-black text-3xl shadow-2xl shadow-[#FF5D2E]/30">
               {player.username?.[0]?.toUpperCase() || 'P'}
             </div>
             <div className="flex-1">
@@ -142,7 +93,7 @@ export const UserProfileModal = ({ isOpen, onClose, player }) => {
           </div>
 
           {/* XP Progress */}
-          <div className="p-6 bg-[#18181B] border border-[#27272A] rounded-2xl">
+          <div className="p-4 bg-[#18181B] border border-[#27272A] rounded-2xl">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Zap size={20} className="text-[#FF5D2E]" />
@@ -162,7 +113,7 @@ export const UserProfileModal = ({ isOpen, onClose, player }) => {
           </div>
 
           {/* Total XP Stat */}
-          <div className="p-6 bg-[#18181B] border border-[#27272A] rounded-2xl">
+          <div className="p-4 bg-[#18181B] border border-[#27272A] rounded-2xl">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center">
                 <Zap size={24} className="text-green-500" />
@@ -175,8 +126,8 @@ export const UserProfileModal = ({ isOpen, onClose, player }) => {
           </div>
 
           {/* Account Info */}
-          <div className="p-6 bg-[#18181B] border border-[#27272A] rounded-2xl space-y-4">
-            <h4 className="text-sm font-bold text-white uppercase mb-4">Account Information</h4>
+          <div className="p-4 bg-[#18181B] border border-[#27272A] rounded-2xl space-y-3">
+            <h4 className="text-sm font-bold text-white uppercase mb-2">Account Information</h4>
 
             {player.email && (
               <div className="flex items-center gap-3 text-sm">
