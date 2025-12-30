@@ -96,11 +96,13 @@ export default class GameScene extends Phaser.Scene {
         this.background.setScale(bgScale);
 
         // Calculate dynamic board size
-        // Use 90% of the smallest screen dimension, maxing out at 640px for the board itself
-        const margin = 40;
+        // Reduce margin to make it bigger on mobile
+        const margin = width < 600 ? 10 : 40; 
         const availableWidth = width - margin * 2;
-        const availableHeight = height - margin * 4; // More margin for turn indicator and potential bottom controls
-        const maxBoardSize = Math.min(640, availableWidth, availableHeight);
+        const availableHeight = height - margin * 4; 
+        
+        // Bigger board on mobile: use more width
+        const maxBoardSize = Math.min(availableWidth, availableHeight, (width < 600 ? 1000 : 640));
         
         this.tileSize = maxBoardSize / 8;
         const totalBoardSize = maxBoardSize;
@@ -172,8 +174,8 @@ export default class GameScene extends Phaser.Scene {
                     container.add(puck);
 
                     if (piece.type === PieceType.KING) {
-                        const crown = this.add.image(0, 0, 'king_overlay');
-                        crown.setDisplaySize(this.tileSize * 0.7, this.tileSize * 0.7);
+                        const crown = this.add.image(0, 0, 'crown_overlay');
+                        crown.setDisplaySize(this.tileSize * 0.85, this.tileSize * 0.85);
                         container.add(crown);
                     }
                     

@@ -14,6 +14,7 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('btn_settings', 'btn_settings.png');
         this.load.image('btn_restart', 'btn_restart.png');
         this.load.image('base_game', 'base_game.png'); // Board Background
+        this.load.image('crown_overlay', 'crown_overlay.png');
         // this.load.image('btn_hint', 'btn_hint.png'); // Missing, will fallback or use placeholder
 
         // Highlight
