@@ -1,4 +1,4 @@
-# Oasis Platform - Complete Folder Structure
+# Oasis - Complete Folder Structure
 
 ## Project Root
 ```
