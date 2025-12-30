@@ -5,8 +5,8 @@ export default class EyePair {
     this.head = head;
 
     // Base scales (will be multiplied by snake scale)
-    this.baseEyeScale = 0.3;
-    this.basePupilScale = 0.4;
+    this.baseEyeScale = 0.2;
+    this.basePupilScale = 0.3;
 
     // Base positioning offsets (will be scaled)
     this.baseEyeSpacing = 4;
@@ -34,7 +34,7 @@ export default class EyePair {
     this.rightPupil.setDepth(201);
   }
 
-  update(snakeScale = 0.3, targetX = null, targetY = null) {
+  update(snakeScale = 0.3, targetX = null, targetY = null, snakeAngle = 0) {
     if (!this.head || this.head.destroyed) return;
 
     let angle = 0;
@@ -43,11 +43,33 @@ export default class EyePair {
     if (targetX !== null && targetY !== null) {
       const dx = targetX - this.head.x;
       const dy = targetY - this.head.y;
-      angle = Math.atan2(dy, dx);
+      const targetAngle = Math.atan2(dy, dx);
+
+      // Calculate the angle difference between snake's direction and target
+      let angleDiff = targetAngle - snakeAngle;
+
+      // Normalize angle difference to -PI to PI range
+      while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+      while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+
+      // Limit eye rotation to ±90 degrees (forward hemisphere only)
+      const maxEyeAngle = Math.PI / 2; // 90 degrees
+      if (Math.abs(angleDiff) > maxEyeAngle) {
+        // Clamp to max angle in the appropriate direction
+        angleDiff = Math.sign(angleDiff) * maxEyeAngle;
+      }
+
+      // Final angle for pupils
+      angle = snakeAngle + angleDiff;
+
+      // Calculate look strength based on distance
       lookStrength = Math.min(Math.hypot(dx, dy) / 120, 1);
+
+      // Reduce look strength if looking to the side (makes it more natural)
+      lookStrength *= (1 - Math.abs(angleDiff) / Math.PI);
     } else {
-      // Fallback if no target provided (e.g. look straight ahead or default)
-      angle = this.head.rotation || 0;
+      // Fallback if no target provided
+      angle = snakeAngle;
       lookStrength = 0.5;
     }
 
@@ -65,40 +87,39 @@ export default class EyePair {
     const eyeVerticalOffset = this.baseEyeVerticalOffset * (snakeScale / 0.3);
     const maxOffset = this.baseMaxOffset * (snakeScale / 0.3);
 
-    // Compute rotation-based offsets for eyes relative to head center
-    // The head image is rotated by snake.angle. We need to position eyes relative to that rotation.
-    // Actually, in the current simple implementation, 'eyeVerticalOffset' assumes 0 rotation?
-    // Looking at previous code: 
-    // this.leftEye.setPosition(this.head.x - eyeSpacing, this.head.y - eyeVerticalOffset);
-    // It didn't account for head rotation! 
-    // Wait, the previous code just set x +/- spacing and y - offset.
-    // If the snake rotates, the eyes would detach visually if they don't rotate with it.
-    // Does the head image rotate?
-    // Snake.js line 210: this.angle = ...
-    // Snake.js line 214-216 move head.
-    // Does it setHead rotation? 
-    // I don't see head.setRotation(this.angle) in Snake.js update().
-    // Ah, Snake.js uses separate segments. Maybe they stay circles and don't rotate?
-    // If they are circles, then "up" is always absolute up.
-    // But Slither snakes turn their whole head.
+    // Rotate eye positions with the snake's head direction
+    // Eyes are positioned perpendicular to the snake's movement direction
+    const cosAngle = Math.cos(snakeAngle);
+    const sinAngle = Math.sin(snakeAngle);
 
-    // Let's stick to the previous logic but just fix the look direction for now.
-    // The previous logic:
-    // this.leftEye.setPosition(this.head.x - eyeSpacing, this.head.y - eyeVerticalOffset);
-    // This implies eyes are always at top-left and top-right of the segment sprite, assuming sprite is always "up".
-    // If the code works for the player currently, I shouldn't break the positioning logic, just the pupil movement.
+    // Calculate perpendicular direction for eye spacing (90 degrees rotated)
+    const perpCos = -sinAngle; // Perpendicular to movement
+    const perpSin = cosAngle;
 
-    // Position white eyeballs on the head (keeping original logic)
-    this.leftEye.setPosition(this.head.x - eyeSpacing, this.head.y - eyeVerticalOffset);
-    this.rightEye.setPosition(this.head.x + eyeSpacing, this.head.y - eyeVerticalOffset);
+    // Forward direction for vertical offset
+    const forwardX = cosAngle * eyeVerticalOffset;
+    const forwardY = sinAngle * eyeVerticalOffset;
+
+    // Left eye position (to the left of movement direction)
+    const leftEyeX = this.head.x + forwardX - perpCos * eyeSpacing;
+    const leftEyeY = this.head.y + forwardY - perpSin * eyeSpacing;
+
+    // Right eye position (to the right of movement direction)
+    const rightEyeX = this.head.x + forwardX + perpCos * eyeSpacing;
+    const rightEyeY = this.head.y + forwardY + perpSin * eyeSpacing;
+
+    // Position white eyeballs on the head (rotated with snake)
+    this.leftEye.setPosition(leftEyeX, leftEyeY);
+    this.rightEye.setPosition(rightEyeX, rightEyeY);
 
     // Move pupils inside the white eyeballs
     this.pupils.forEach((pupil, i) => {
       const offsetX = Math.cos(angle) * maxOffset * lookStrength;
       const offsetY = Math.sin(angle) * maxOffset * lookStrength;
 
-      const baseX = this.head.x + (i === 0 ? -eyeSpacing : eyeSpacing);
-      pupil.setPosition(baseX + offsetX, this.head.y - eyeVerticalOffset + offsetY);
+      const baseX = i === 0 ? leftEyeX : rightEyeX;
+      const baseY = i === 0 ? leftEyeY : rightEyeY;
+      pupil.setPosition(baseX + offsetX, baseY + offsetY);
     });
   }
 

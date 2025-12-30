@@ -29,9 +29,8 @@ export default class Snake {
     this.angle = 0;
     this.targetAngle = 0;
 
-    // Store trail positions for smooth following
-    this.trail = [];
-    this.maxTrailLength = 1000;
+    // Physics-based movement - each segment follows the one in front
+    // No trail needed - segments have their own positions and velocities
 
     // Dynamic collision radius
     this.baseHeadRadius = 16;
@@ -106,7 +105,6 @@ export default class Snake {
     head.snake = this;
 
     this.segments.push(head);
-    this.trail.push({ x: this.x, y: this.y });
 
     // BODY SEGMENTS
     const segmentCount = this.minLength - 1;
@@ -124,7 +122,6 @@ export default class Snake {
       seg.setDepth(100 - i);
 
       this.segments.push(seg);
-      this.trail.push({ x: this.x - i * spacing, y: this.y });
     }
   }
 
@@ -212,16 +209,13 @@ export default class Snake {
     // Move head
     const distance = (this.currentSpeed * delta) / 1000;
     const head = this.segments[0];
+
+    // Store previous head position
+    const prevHeadX = head.x;
+    const prevHeadY = head.y;
+
     head.x += Math.cos(this.angle) * distance;
     head.y += Math.sin(this.angle) * distance;
-
-    // Add current head position to trail
-    this.trail.unshift({ x: head.x, y: head.y });
-
-    // Limit trail length
-    if (this.trail.length > this.maxTrailLength) {
-      this.trail.pop();
-    }
 
     // Get current spacing and scale
     const spacing = this.getSegmentSpacing();
@@ -233,38 +227,37 @@ export default class Snake {
       seg.setScale(segScale);
     });
 
-    // Position each segment along the trail at fixed intervals
+    // Physics-based segment following - each segment follows the one in front
+    // This creates natural snake-like curves without needing a trail
     for (let i = 1; i < this.segments.length; i++) {
-      const targetDistance = i * spacing;
+      const currentSeg = this.segments[i];
+      const prevSeg = this.segments[i - 1];
 
-      // Find position along trail
-      let accumulatedDistance = 0;
+      // Calculate direction from current segment to previous segment
+      const dx = prevSeg.x - currentSeg.x;
+      const dy = prevSeg.y - currentSeg.y;
+      const dist = Math.hypot(dx, dy);
 
-      for (let j = 0; j < this.trail.length - 1; j++) {
-        const p1 = this.trail[j];
-        const p2 = this.trail[j + 1];
-        const segmentDistance = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+      // Only move if segments are too far apart
+      if (dist > spacing) {
+        // Move segment towards the previous one to maintain spacing
+        const angle = Math.atan2(dy, dx);
+        const moveDistance = dist - spacing;
 
-        if (accumulatedDistance + segmentDistance >= targetDistance) {
-          // Interpolate position
-          const remainingDistance = targetDistance - accumulatedDistance;
-          const ratio = remainingDistance / segmentDistance;
-
-          this.segments[i].x = p1.x + (p2.x - p1.x) * ratio;
-          this.segments[i].y = p1.y + (p2.y - p1.y) * ratio;
-          break;
-        }
-
-        accumulatedDistance += segmentDistance;
+        // Smooth movement with damping for more natural motion
+        const damping = 0.5; // Adjust for more/less rigid movement
+        currentSeg.x += Math.cos(angle) * moveDistance * damping;
+        currentSeg.y += Math.sin(angle) * moveDistance * damping;
       }
     }
 
     // Update eyes with appropriate target
     let targetX, targetY;
     if (this.isPlayer) {
+      // Get pointer world position (accounts for camera position)
       const pointer = this.scene.input.activePointer;
-      targetX = pointer.worldX ?? pointer.x;
-      targetY = pointer.worldY ?? pointer.y;
+      targetX = pointer.worldX;
+      targetY = pointer.worldY;
     } else {
       // Bots look in their movement direction
       const lookDistance = 300;
@@ -272,7 +265,7 @@ export default class Snake {
       targetY = head.y + Math.sin(this.angle) * lookDistance;
     }
 
-    this.eyes.update(scale, targetX, targetY);
+    this.eyes.update(scale, targetX, targetY, this.angle);
   }
 
   dropBoostPellet() {
@@ -335,23 +328,40 @@ export default class Snake {
     if (this.isDead || otherSnake.isDead) return false;
 
     const head = this.segments[0];
+    const otherHead = otherSnake.segments[0];
     const radii = this.getCollisionRadii();
     const otherRadii = otherSnake.getCollisionRadii();
 
-    for (let i = 0; i < otherSnake.segments.length; i++) {
+    // Check head-to-head collision first
+    const headDistance = Math.hypot(head.x - otherHead.x, head.y - otherHead.y);
+    if (headDistance < radii.head + otherRadii.head - 10) {
+      // Head-to-head collision detected
+      // Determine which snake was moving toward the other
+      // Calculate angle from this snake's head to other snake's head
+      const angleToOther = Math.atan2(otherHead.y - head.y, otherHead.x - head.x);
+
+      // Calculate the difference between this snake's movement angle and the angle to the other snake
+      let angleDiff = Math.abs(this.angle - angleToOther);
+      // Normalize to 0-PI range
+      if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
+
+      // If this snake is moving toward the other (angle difference < 90 degrees)
+      if (angleDiff < Math.PI / 2) {
+        return true; // This snake dies (it was moving toward the collision)
+      }
+
+      return false; // This snake was moving away, so it doesn't die
+    }
+
+    // Check collision with OTHER snake's BODY segments (skip their head at index 0)
+    // This way, only the snake whose head hits another's body dies
+    for (let i = 1; i < otherSnake.segments.length; i++) {
       const segment = otherSnake.segments[i];
       const distance = Math.hypot(head.x - segment.x, head.y - segment.y);
 
-      if (i === 0) {
-        // Head-to-head collision
-        if (distance < radii.head + otherRadii.head - 10) {
-          return true;
-        }
-      } else {
-        // Body collision
-        if (distance < radii.head + otherRadii.body - 8) {
-          return true;
-        }
+      // Body collision - this snake's head hit other snake's body
+      if (distance < radii.head + otherRadii.body - 8) {
+        return true;
       }
     }
 
@@ -421,30 +431,9 @@ export default class Snake {
       const newIndex = this.segments.length;
       const tail = this.segments[newIndex - 1];
 
-      // Calculate position behind tail using trail
-      const targetDistance = newIndex * spacing;
-      let accumulatedDistance = 0;
-      let newX = tail.x;
-      let newY = tail.y;
-
-      for (let j = 0; j < this.trail.length - 1; j++) {
-        const p1 = this.trail[j];
-        const p2 = this.trail[j + 1];
-        const segmentDistance = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-
-        if (accumulatedDistance + segmentDistance >= targetDistance) {
-          const remainingDistance = targetDistance - accumulatedDistance;
-          const ratio = remainingDistance / segmentDistance;
-
-          newX = p1.x + (p2.x - p1.x) * ratio;
-          newY = p1.y + (p2.y - p1.y) * ratio;
-          break;
-        }
-
-        accumulatedDistance += segmentDistance;
-      }
-
-      const seg = this.scene.add.image(newX, newY, config.texture);
+      // Spawn new segment at tail position
+      // It will naturally follow the tail through physics-based movement
+      const seg = this.scene.add.image(tail.x, tail.y, config.texture);
       seg.setTint(config.tint);
       seg.setScale(scale * 0.98);
       seg.setDepth(100 - newIndex);
@@ -477,6 +466,7 @@ export default class Snake {
       this.scene.addDeathPellets(pellets);
     }
 
+    // Animate segments fading out
     this.segments.forEach((seg) => {
       this.scene.tweens.add({
         targets: seg,
@@ -489,6 +479,24 @@ export default class Snake {
         ease: 'Power2'
       });
     });
+
+    // Animate eyes fading out at the same time
+    if (this.eyes && this.eyes.leftEye && this.eyes.rightEye) {
+      const eyeTargets = [this.eyes.leftEye, this.eyes.rightEye];
+
+      // Add pupils if they exist
+      if (this.eyes.leftPupil) eyeTargets.push(this.eyes.leftPupil);
+      if (this.eyes.rightPupil) eyeTargets.push(this.eyes.rightPupil);
+
+      this.scene.tweens.add({
+        targets: eyeTargets,
+        alpha: 0,
+        scale: 0,
+        duration: 400,
+        delay: 30,
+        ease: 'Power2'
+      });
+    }
 
     this.scene.time.delayedCall(1000, () => {
       this.destroy();
