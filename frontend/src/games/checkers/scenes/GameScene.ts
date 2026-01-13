@@ -32,7 +32,7 @@ export default class GameScene extends Phaser.Scene {
 
         // 1. Background
         this.background = this.add.image(0, 0, 'bg_wood');
-        
+
         // 2. Board
         this.boardBg = this.add.image(0, 0, 'base_game');
         this.boardBg.setDisplaySize(680, 680);
@@ -74,8 +74,9 @@ export default class GameScene extends Phaser.Scene {
 
         // Events
         this.events.on('restart', this.restartGame, this);
+        this.events.on('showHint', this.showHint, this);
         this.scale.on('resize', this.handleResize, this);
-        
+
         this.handleResize(); // Initial positioning
     }
 
@@ -90,20 +91,20 @@ export default class GameScene extends Phaser.Scene {
 
         // Background should cover the entire screen
         this.background.setPosition(width / 2, height / 2);
-        
+
         // Scale background to cover
         const bgScale = Math.max(width / this.background.width, height / this.background.height);
         this.background.setScale(bgScale);
 
         // Calculate dynamic board size
         // Reduce margin to make it bigger on mobile
-        const margin = width < 600 ? 10 : 40; 
+        const margin = width < 600 ? 10 : 40;
         const availableWidth = width - margin * 2;
-        const availableHeight = height - margin * 4; 
-        
+        const availableHeight = height - margin * 4;
+
         // Bigger board on mobile: use more width
         const maxBoardSize = Math.min(availableWidth, availableHeight, (width < 600 ? 1000 : 640));
-        
+
         this.tileSize = maxBoardSize / 8;
         const totalBoardSize = maxBoardSize;
 
@@ -113,18 +114,18 @@ export default class GameScene extends Phaser.Scene {
 
         // Scale the board background (the wood frame)
         // Original size was 680 for a 640 board (20px border on each side)
-        const framePadding = (this.tileSize / 80) * 40; 
+        const framePadding = (this.tileSize / 80) * 40;
         this.boardBg.setPosition(width / 2, height / 2);
         this.boardBg.setDisplaySize(totalBoardSize + framePadding, totalBoardSize + framePadding);
-        
+
         if (this.turnContainer) {
             const uiScale = Math.max(0.7, Math.min(1, totalBoardSize / 640));
             this.turnContainer.setScale(uiScale);
-            
+
             // Position turn UI above the board
             const turnY = Math.max(40, this.boardOffsetY - 40 * uiScale);
             this.turnContainer.setPosition(width / 2 - 40 * uiScale, turnY);
-            
+
             if (this.turnIndicator) {
                 this.turnIndicator.setDisplaySize(40, 40);
             }
@@ -168,7 +169,7 @@ export default class GameScene extends Phaser.Scene {
                     // Use Sprite/Container instead of DOM
                     const texture = piece.color === PlayerColor.RED ? 'puck_red' : 'puck_blue';
                     const container = this.add.container(x, y);
-                    
+
                     const puck = this.add.image(0, 0, texture);
                     puck.setDisplaySize(this.tileSize * 0.85, this.tileSize * 0.85);
                     container.add(puck);
@@ -178,7 +179,7 @@ export default class GameScene extends Phaser.Scene {
                         crown.setDisplaySize(this.tileSize * 0.85, this.tileSize * 0.85);
                         container.add(crown);
                     }
-                    
+
                     container.setData('r', row);
                     container.setData('c', col);
 
@@ -283,9 +284,25 @@ export default class GameScene extends Phaser.Scene {
             }
         }
 
+
         const onMoveComplete = () => {
             const { captured, promoted } = this.boardLogic.movePiece(start, end);
             this.createPieces(); // Full redraw to finalize state (kings, captures)
+
+            // Check for game over immediately after capture (in case all pieces are gone)
+            console.log('Checking for game over after move from', start, 'to', end);
+            const immediateGameOverCheck = this.boardLogic.checkGameOver();
+            console.log('Game over check result:', immediateGameOverCheck);
+            console.log('immediateGameOverCheck.gameOver value:', immediateGameOverCheck.gameOver);
+            console.log('Type of gameOver:', typeof immediateGameOverCheck.gameOver);
+
+            if (immediateGameOverCheck.gameOver) {
+                console.log('ENTERING GAME OVER HANDLER');
+                this.handleGameOver(immediateGameOverCheck.winner);
+                this.isAnimating = false;
+                this.activeChainPiece = null;
+                return;
+            }
 
             // Multi-jump Logic
             let canChain = false;
@@ -304,9 +321,25 @@ export default class GameScene extends Phaser.Scene {
                 this.highlightSquares(end.row, end.col, startX, startY);
                 this.showValidMoves(end.row, end.col, startX, startY);
                 // Turn continues for current player
+
+                // If it's AI's turn and there's a chain, continue the AI turn
+                if (this.boardLogic.currentPlayer === PlayerColor.BLUE) {
+                    this.time.delayedCall(500, () => {
+                        this.continueAiChain();
+                    });
+                }
             } else {
                 this.activeChainPiece = null;
                 this.boardLogic.switchTurn();
+
+                // Check for game over after turn switch
+                const gameOverResult = this.boardLogic.checkGameOver();
+                if (gameOverResult.gameOver) {
+                    this.handleGameOver(gameOverResult.winner);
+                    this.isAnimating = false;
+                    return;
+                }
+
                 this.updateTurnUI();
 
                 // Check if it's now AI's turn
@@ -317,6 +350,7 @@ export default class GameScene extends Phaser.Scene {
 
             this.isAnimating = false;
         };
+
 
         if (visualPiece) {
             // Bring to top so it slides OVER other pieces (captures)
@@ -381,9 +415,51 @@ export default class GameScene extends Phaser.Scene {
         });
     }
 
+    continueAiChain() {
+        // This method is called when the AI has a chain capture available
+        if (!this.activeChainPiece || this.boardLogic.currentPlayer !== PlayerColor.BLUE) {
+            return;
+        }
+
+        this.isAiTurn = true;
+        this.isAnimating = true;
+
+        // Get valid moves for the active chain piece
+        const validMoves = this.boardLogic.getValidMoves({
+            row: this.activeChainPiece.r,
+            col: this.activeChainPiece.c
+        });
+
+        // Filter for capture moves only (distance 2)
+        const captureMoves = validMoves.filter(m =>
+            Math.abs(m.row - this.activeChainPiece!.r) === 2
+        );
+
+        if (captureMoves.length > 0) {
+            // Use AI to pick the best capture move
+            const move = this.ai.getBestMove(this.boardLogic.clone());
+
+            if (move) {
+                // Execute the next capture in the chain
+                this.executeMove(
+                    { row: this.activeChainPiece.r, col: this.activeChainPiece.c },
+                    move.end
+                );
+            } else {
+                // Fallback: just pick the first available capture
+                this.executeMove(
+                    { row: this.activeChainPiece.r, col: this.activeChainPiece.c },
+                    captureMoves[0]
+                );
+            }
+        }
+
+        this.isAiTurn = false;
+    }
+
     updateTurnUI() {
         if (!this.turnIndicator) return;
-        
+
         if (this.boardLogic.currentPlayer === PlayerColor.RED) {
             this.turnIndicator.setTexture('puck_red');
             this.turnText.setText('Your Turn');
@@ -409,6 +485,115 @@ export default class GameScene extends Phaser.Scene {
             const h = this.highlightGroup.create(x, y, 'valid_move');
             h.setDisplaySize(this.tileSize, this.tileSize);
         });
+    }
+
+    handleGameOver(winner: PlayerColor | 'draw' | null) {
+        console.log('handleGameOver called with winner:', winner);
+
+        // Calculate score based on remaining pieces
+        const redPieces = this.boardLogic.countPieces(PlayerColor.RED);
+        const bluePieces = this.boardLogic.countPieces(PlayerColor.BLUE);
+
+        let isWinner = false;
+        let isDraw = false;
+        let score = 0;
+
+        if (winner === PlayerColor.RED) {
+            isWinner = true;
+            score = redPieces * 10; // Score based on remaining pieces
+        } else if (winner === PlayerColor.BLUE) {
+            isWinner = false;
+            score = redPieces * 5; // Partial score for losing
+        } else if (winner === 'draw') {
+            isDraw = true;
+            score = redPieces * 7;
+        }
+
+        console.log('Emitting gameOver event:', { isWinner, isDraw, score, redPieces, bluePieces });
+
+        // Emit game over event to be caught by the React layer
+        this.events.emit('gameOver', {
+            isWinner,
+            isDraw,
+            score,
+            redPieces,
+            bluePieces
+        });
+    }
+
+    showHint() {
+        // Only show hints for the player's turn (RED)
+        if (this.boardLogic.currentPlayer !== PlayerColor.RED || this.isAiTurn || this.isAnimating) {
+            return;
+        }
+
+        // Clear any existing highlights
+        this.highlightGroup.clear(true, true);
+
+        // Use AI to get the best move for the player
+        const playerAI = new AI(2, PlayerColor.RED); // Lower depth for faster hint
+        const bestMove = playerAI.getBestMove(this.boardLogic.clone());
+
+        if (bestMove) {
+            const startX = this.boardOffsetX;
+            const startY = this.boardOffsetY;
+
+            // Highlight the piece to move with a pulsing effect
+            const pieceX = startX + bestMove.start.col * this.tileSize + this.tileSize / 2;
+            const pieceY = startY + bestMove.start.row * this.tileSize + this.tileSize / 2;
+
+            const hintPiece = this.add.circle(pieceX, pieceY, this.tileSize * 0.5, 0xFFCE31, 0.4);
+            this.highlightGroup.add(hintPiece);
+
+            // Pulsing animation for the piece
+            this.tweens.add({
+                targets: hintPiece,
+                alpha: 0.7,
+                scale: 1.1,
+                duration: 500,
+                yoyo: true,
+                repeat: 2,
+                ease: 'Sine.easeInOut'
+            });
+
+            // Highlight the destination with an arrow or marker
+            const destX = startX + bestMove.end.col * this.tileSize + this.tileSize / 2;
+            const destY = startY + bestMove.end.row * this.tileSize + this.tileSize / 2;
+
+            const hintDest = this.add.circle(destX, destY, this.tileSize * 0.4, 0x00FF88, 0.5);
+            this.highlightGroup.add(hintDest);
+
+            // Pulsing animation for the destination
+            this.tweens.add({
+                targets: hintDest,
+                alpha: 0.8,
+                scale: 1.2,
+                duration: 500,
+                yoyo: true,
+                repeat: 2,
+                ease: 'Sine.easeInOut'
+            });
+
+            // Draw an arrow from piece to destination
+            const graphics = this.add.graphics();
+            graphics.lineStyle(4, 0xFFCE31, 0.6);
+            graphics.beginPath();
+            graphics.moveTo(pieceX, pieceY);
+            graphics.lineTo(destX, destY);
+            graphics.strokePath();
+            this.highlightGroup.add(graphics);
+
+            // Fade out the arrow
+            this.tweens.add({
+                targets: graphics,
+                alpha: 0,
+                duration: 1500,
+                delay: 1000,
+                onComplete: () => {
+                    this.highlightGroup.clear(true, true);
+                }
+            });
+        }
     }
 
     restartGame() {

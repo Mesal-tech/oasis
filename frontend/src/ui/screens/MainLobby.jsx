@@ -9,17 +9,9 @@ export const MainLobby = () => {
   const { player } = usePlayer();
   const navigate = useNavigate();
   const [games, setGames] = useState([]);
+  const [trendingGames, setTrendingGames] = useState([]);
   const [activeCategory, setActiveCategory] = useState('All');
   const [currentSlide, setCurrentSlide] = useState(0);
-
-  // Mock data for "Trending" list (Right side of Hero)
-  const TRENDING_GAMES = [
-    { rank: 1, name: "Slither.io Arena", players: "12.5K", change: "+14%" },
-    { rank: 2, name: "Flappy Royale", players: "8.2K", change: "+5%" },
-    { rank: 3, name: "Cyber Chess", players: "5.1K", change: "-2%" },
-    { rank: 4, name: "Neon Racer", players: "3.9K", change: "+22%" },
-    { rank: 5, name: "Space Invaders", players: "2.5K", change: "+8%" }
-  ];
 
   const FEATURED_SLIDES = [
     {
@@ -79,14 +71,27 @@ export const MainLobby = () => {
             { id: 'slither', title: 'Slither.io', category: 'Action', activePlayers: 1240, thumbnail: '/assets/slither-thumb.jpg' },
             { id: 'flappy', title: 'Flappy Bird', category: 'Arcade', activePlayers: 850, thumbnail: '/assets/flappy-thumb.jpg' },
             { id: 'checkers', title: 'Checkers', category: 'Board', activePlayers: 100, thumbnail: '/assets/checkers-thumb.jpg' },
-            { id: 'whot', title: 'Naija Whot', category: 'Strategy', activePlayers: 540, thumbnail: '/assets/cards-thumb.jpg' },
+            { id: 'whot', title: 'Naija Whot', category: 'Strategy', activePlayers: 540, thumbnail: '/assets/whot-thumb.jpg' },
           ]);
         }
       } catch (error) {
         console.error("Failed to fetch games:", error);
       }
     };
+
+    const fetchTrendingData = async () => {
+      try {
+        const response = await apiClient.getTrendingGames();
+        if (response.success && response.trending.length > 0) {
+          setTrendingGames(response.trending.slice(0, 5)); // Top 5 trending games
+        }
+      } catch (error) {
+        console.error("Failed to fetch trending games:", error);
+      }
+    };
+
     fetchGamesData();
+    fetchTrendingData();
   }, []);
 
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % FEATURED_SLIDES.length);
@@ -203,25 +208,35 @@ export const MainLobby = () => {
 
             {/* List */}
             <div className="flex-1 space-y-2 lg:space-y-1 overflow-visible lg:overflow-y-auto pr-0 lg:pr-2 custom-scrollbar">
-              {TRENDING_GAMES.map((game) => (
-                <div key={game.rank} className="grid grid-cols-12 items-center p-2 lg:p-3 rounded-xl bg-[#18181B]/50 lg:bg-transparent hover:bg-[#18181B] border border-[#27272A]/50 lg:border-transparent hover:border-[#27272A] transition-all cursor-pointer group">
-                  <div className="hidden lg:block col-span-1 font-mono text-[#A1A1AA] font-bold">{game.rank}</div>
-                  <div className="col-span-7 lg:col-span-6 flex items-center gap-3">
-                    <div className="relative w-10 h-10 lg:w-10 lg:h-10 rounded-lg bg-[#27272A] border border-[#3F3F46] flex flex-shrink-0 items-center justify-center overflow-hidden">
-                      <span className="text-xs relative z-10">🎮</span>
-                      {/* Mobile Rank Badge */}
-                      <div className="lg:hidden absolute top-0 left-0 bg-[#27272A] text-[8px] font-bold px-1 rounded-br text-[#A1A1AA] border-r border-b border-[#3F3F46]">
-                        #{game.rank}
+              {trendingGames.length > 0 ? (
+                trendingGames.map((game) => (
+                  <div
+                    key={game.rank}
+                    onClick={() => navigate(`/game/${game.id}`)}
+                    className="grid grid-cols-12 items-center p-2 lg:p-3 rounded-xl bg-[#18181B]/50 lg:bg-transparent hover:bg-[#18181B] border border-[#27272A]/50 lg:border-transparent hover:border-[#27272A] transition-all cursor-pointer group"
+                  >
+                    <div className="hidden lg:block col-span-1 font-mono text-[#A1A1AA] font-bold">{game.rank}</div>
+                    <div className="col-span-7 lg:col-span-6 flex items-center gap-3">
+                      <div className="relative w-10 h-10 lg:w-10 lg:h-10 rounded-lg bg-[#27272A] border border-[#3F3F46] flex flex-shrink-0 items-center justify-center overflow-hidden">
+                        <span className="text-xl relative z-10">{game.icon || '🎮'}</span>
+                        {/* Mobile Rank Badge */}
+                        <div className="lg:hidden absolute top-0 left-0 bg-[#27272A] text-[8px] font-bold px-1 rounded-br text-[#A1A1AA] border-r border-b border-[#3F3F46]">
+                          #{game.rank}
+                        </div>
                       </div>
+                      <span className="font-bold text-sm text-[#E4E4E7] group-hover:text-white truncate">{game.title}</span>
                     </div>
-                    <span className="font-bold text-sm text-[#E4E4E7] group-hover:text-white truncate">{game.name}</span>
+                    <div className="col-span-3 text-right font-mono text-xs text-[#A1A1AA]">{game.players}</div>
+                    <div className={`col-span-2 text-right font-mono text-xs font-bold ${game.changeFormatted.startsWith('+') ? 'text-[#10B981]' : 'text-[#EF4444]'}`}>
+                      {game.changeFormatted}
+                    </div>
                   </div>
-                  <div className="col-span-3 text-right font-mono text-xs text-[#A1A1AA]">{game.players}</div>
-                  <div className={`col-span-2 text-right font-mono text-xs font-bold ${game.change.startsWith('+') ? 'text-[#10B981]' : 'text-[#EF4444]'}`}>
-                    {game.change}
-                  </div>
+                ))
+              ) : (
+                <div className="text-center text-[#52525B] py-8 text-sm">
+                  No trending data available yet. Play some games to see trends!
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
@@ -231,7 +246,7 @@ export const MainLobby = () => {
           <h3 className="text-xl font-bold mb-4">Spotlight Games</h3>
           <p className="text-[#A1A1AA] text-sm mb-6">Enjoy these highly curated experiences.</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {games.slice(0, 3).map((game, index) => (
+            {games.filter(game => game.id !== 'slither' && game.id !== 'racing').slice(0, 3).map((game, index) => (
               <div
                 key={game.id}
                 onClick={() => navigate(`/game/${game.id}`)}
@@ -240,8 +255,8 @@ export const MainLobby = () => {
                 {/* Background Image */}
                 <div className="absolute inset-0 z-0">
                   <img
-                    src="/assets/slither-thumb.jpg"
-                    alt={game.name}
+                    src={game.thumbnail || '/assets/slither-thumb.jpg'}
+                    alt={game.title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />
                   {/* Dark gradient overlay for text readability */}
@@ -262,7 +277,7 @@ export const MainLobby = () => {
                 <div className="absolute bottom-0 left-0 right-0 z-10 p-6 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center text-2xl border border-white/10">
-                      {index === 0 ? '🐍' : index === 1 ? '🦅' : '🎮'}
+                      {game.icon || '🎮'}
                     </div>
                     <div>
                       <h4 className="text-xl font-bold text-white drop-shadow-lg">{game.title}</h4>

@@ -58,6 +58,10 @@ class ApiClient {
     return this.request('/api/games');
   }
 
+  async getTrendingGames() {
+    return this.request('/api/games/trending');
+  }
+
   async getGame(gameId) {
     return this.request(`/api/games/${gameId}`);
   }

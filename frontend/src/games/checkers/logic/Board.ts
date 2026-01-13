@@ -132,4 +132,48 @@ export class Board {
         }
         return moves;
     }
+
+    // Count pieces for each player
+    countPieces(color: PlayerColor): number {
+        let count = 0;
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.cols; col++) {
+                const piece = this.getPiece(row, col);
+                if (piece && piece.color === color) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    // Check if game is over and return the result
+    // Returns: null (game continues), 'red' (red wins), 'blue' (blue wins), 'draw'
+    checkGameOver(): { gameOver: boolean, winner: PlayerColor | 'draw' | null } {
+        const redPieces = this.countPieces(PlayerColor.RED);
+        const bluePieces = this.countPieces(PlayerColor.BLUE);
+
+        console.log('checkGameOver called - Red pieces:', redPieces, 'Blue pieces:', bluePieces, 'Current player:', this.currentPlayer);
+
+        // Check if either player has no pieces left
+        if (redPieces === 0) {
+            console.log('Game Over: Blue wins (no red pieces)');
+            return { gameOver: true, winner: PlayerColor.BLUE };
+        }
+        if (bluePieces === 0) {
+            console.log('Game Over: Red wins (no blue pieces)');
+            return { gameOver: true, winner: PlayerColor.RED };
+        }
+
+        // Check if current player has no valid moves (stalemate)
+        const currentPlayerMoves = this.getAllValidMoves();
+        if (currentPlayerMoves.length === 0) {
+            // Current player can't move, they lose
+            const winner = this.currentPlayer === PlayerColor.RED ? PlayerColor.BLUE : PlayerColor.RED;
+            console.log('Game Over: Stalemate -', winner, 'wins');
+            return { gameOver: true, winner };
+        }
+
+        return { gameOver: false, winner: null };
+    }
 }

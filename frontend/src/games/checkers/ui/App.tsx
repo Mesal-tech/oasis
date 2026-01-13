@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GameButton } from './GameButton';
+import { GameOverModal } from './GameOverModal';
+import { MenuModal } from './MenuModal';
 import { FaLightbulb } from 'react-icons/fa';
 import { TfiMenuAlt } from "react-icons/tfi";
 import { GrRefresh } from "react-icons/gr";
@@ -8,6 +10,83 @@ import { PhaserGame } from '../components/PhaserGame';
 
 export const App: React.FC = () => {
     const [game, setGame] = useState<Phaser.Game | null>(null);
+    const [showGameOver, setShowGameOver] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
+    const [soundEnabled, setSoundEnabled] = useState(true);
+    const [gameResult, setGameResult] = useState({
+        isWinner: false,
+        isDraw: false,
+        score: 0,
+        redPieces: 0,
+        bluePieces: 0,
+        earnedXP: 0,
+        earnedTokens: 0
+    });
+
+    useEffect(() => {
+        if (!game) return;
+
+        const gameScene = game.scene.getScene('GameScene');
+        if (gameScene) {
+            // Listen for game over event
+            gameScene.events.on('gameOver', (result: any) => {
+                console.log('Game over event received:', result);
+                setGameResult({
+                    isWinner: result.isWinner,
+                    isDraw: result.isDraw || false,
+                    score: result.score,
+                    redPieces: result.redPieces,
+                    bluePieces: result.bluePieces,
+                    earnedXP: 0, // Will be updated after backend call
+                    earnedTokens: 0
+                });
+
+                // Save match result to backend
+                saveMatchResult(result.score, result.isWinner);
+
+                // Show modal after a short delay
+                setTimeout(() => {
+                    setShowGameOver(true);
+                }, 500);
+            });
+        }
+
+        return () => {
+            if (gameScene) {
+                gameScene.events.off('gameOver');
+            }
+        };
+    }, [game]);
+
+    // Keyboard shortcuts
+    useEffect(() => {
+        const handleKeyPress = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                if (showMenu) {
+                    setShowMenu(false);
+                } else if (!showGameOver) {
+                    setShowMenu(true);
+                }
+            } else if (e.key.toLowerCase() === 'h' && !showMenu && !showGameOver) {
+                handleHint();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyPress);
+        return () => window.removeEventListener('keydown', handleKeyPress);
+    }, [showMenu, showGameOver]);
+
+    const saveMatchResult = async (score: number, isWinner: boolean) => {
+        try {
+            // Get player and game data from parent context if available
+            // For now, we'll emit an event that can be caught by GameScreen
+            window.dispatchEvent(new CustomEvent('checkersGameOver', {
+                detail: { score, isWinner }
+            }));
+        } catch (error) {
+            console.error('Failed to save match result:', error);
+        }
+    };
 
     const handleRestart = () => {
         if (!game) return;
@@ -15,14 +94,45 @@ export const App: React.FC = () => {
         if (gameScene) {
             gameScene.events.emit('restart');
         }
+        setShowGameOver(false);
+        setShowMenu(false);
     };
 
     const handleMenu = () => {
-        console.log("Menu clicked");
+        setShowMenu(true);
     };
 
     const handleHint = () => {
-        console.log("Hint clicked");
+        if (!game || showMenu || showGameOver) return;
+        const gameScene = game.scene.getScene('GameScene');
+        if (gameScene) {
+            gameScene.events.emit('showHint');
+        }
+    };
+
+    const handlePlayAgain = () => {
+        handleRestart();
+    };
+
+    const handleBackToLobby = () => {
+        // Emit event to be caught by GameScreen
+        window.dispatchEvent(new CustomEvent('checkersBackToLobby'));
+    };
+
+    const handleResumeGame = () => {
+        setShowMenu(false);
+    };
+
+    const handleToggleSound = () => {
+        setSoundEnabled(!soundEnabled);
+        // Here you can also emit an event to the game scene to mute/unmute sounds
+        if (game) {
+            const gameScene = game.scene.getScene('GameScene');
+            if (gameScene) {
+                // Toggle sound in the game
+                game.sound.mute = !soundEnabled;
+            }
+        }
     };
 
     return (
@@ -46,6 +156,32 @@ export const App: React.FC = () => {
                         <GameButton icon={<FaLightbulb />} onClick={handleHint} color="#00aa00" />
                     </div>
                 </div>
+
+                {/* Menu Modal */}
+                {showMenu && (
+                    <MenuModal
+                        onResume={handleResumeGame}
+                        onRestart={handleRestart}
+                        onBackToLobby={handleBackToLobby}
+                        soundEnabled={soundEnabled}
+                        onToggleSound={handleToggleSound}
+                    />
+                )}
+
+                {/* Game Over Modal */}
+                {showGameOver && (
+                    <GameOverModal
+                        isWinner={gameResult.isWinner}
+                        isDraw={gameResult.isDraw}
+                        score={gameResult.score}
+                        redPieces={gameResult.redPieces}
+                        bluePieces={gameResult.bluePieces}
+                        earnedXP={gameResult.earnedXP}
+                        earnedTokens={gameResult.earnedTokens}
+                        onPlayAgain={handlePlayAgain}
+                        onBackToLobby={handleBackToLobby}
+                    />
+                )}
             </div>
         </div>
     );

@@ -406,9 +406,72 @@ export const GameScreen = () => {
           root.render(<CheckersApp />);
           reactRootRef.current = root;
 
-          // Note: Checkers uses its own PhaserGame component which manages the game instance.
-          // We don't have direct access to 'game' here to attach listeners easily unless we architect it.
-          // For now, this gets the game running.
+          // Listen for game over event from checkers
+          const handleCheckersGameOver = async (event) => {
+            const { score, isWinner } = event.detail;
+            console.log('Checkers game over:', { score, isWinner });
+
+            // Save match to backend
+            await saveMatchResult(score, isWinner, { gameType: 'checkers' });
+          };
+
+          const handleCheckersBackToLobby = () => {
+            setGameState('lobby');
+            if (reactRootRef.current) {
+              reactRootRef.current.unmount();
+              reactRootRef.current = null;
+            }
+          };
+
+          window.addEventListener('checkersGameOver', handleCheckersGameOver);
+          window.addEventListener('checkersBackToLobby', handleCheckersBackToLobby);
+
+          // Store cleanup function
+          gameInstanceRef.current = {
+            cleanup: () => {
+              window.removeEventListener('checkersGameOver', handleCheckersGameOver);
+              window.removeEventListener('checkersBackToLobby', handleCheckersBackToLobby);
+            }
+          };
+
+        } else if (gameData.id === 'whot') {
+          // Whot Integration
+          const mod = await import('../../games/whot/index.js');
+          const Game = mod.WhotGame;
+
+          const d = document.createElement('div');
+          d.id = 'whot-root';
+          d.style.width = '100%';
+          d.style.height = '100%';
+          container.appendChild(d);
+
+          const game = new Game('whot-root');
+          game.launch({
+            nickname: nickname || 'You',
+            difficulty: 'medium'
+          });
+          gameInstanceRef.current = game;
+
+          // Attach game over listener
+          setTimeout(() => {
+            if (game.game && game.game.events) {
+              game.game.events.on('gameOver', async (score, isWinner) => {
+                console.log('🃏 Whot gameOver event received. Score:', score, 'Winner:', isWinner);
+
+                // Stop music
+                if (game.stopMusic) {
+                  game.stopMusic();
+                }
+
+                const finalScore = score || 0;
+                setGameResult({ score: finalScore, length: 0, isWinner });
+                setGameState('gameover');
+
+                // Save match to backend
+                await saveMatchResult(finalScore, isWinner, { gameType: 'whot' });
+              });
+            }
+          }, 500);
 
         } else {
           // Placeholder

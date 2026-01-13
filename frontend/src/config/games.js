@@ -21,16 +21,6 @@ const GAMES = [
     thumbnail: '/assets/flappy-thumb.jpg'
   },
   {
-    id: 'racing',
-    title: 'Speed Racer',
-    icon: '🏎️',
-    description: 'Race against opponents in real-time',
-    category: 'racing',
-    players: 892,
-    earnRate: '3x',
-    thumbnail: '/assets/racing-thumb.jpg'
-  },
-  {
     id: 'cards',
     title: 'Cards',
     icon: '🃏',
@@ -49,6 +39,16 @@ const GAMES = [
     players: 100,
     earnRate: '1x',
     thumbnail: '/assets/checkers-thumb.jpg'
+  },
+  {
+    id: 'whot',
+    title: 'Naija Whot',
+    icon: '🃏',
+    description: 'Play the classic Nigerian card game',
+    category: 'cards',
+    players: 0,
+    earnRate: '1.5x',
+    thumbnail: '/assets/whot-thumb.jpg'
   },
 ];
 
