@@ -15,7 +15,29 @@ export class AI {
         this.aiColor = aiColor;
     }
 
-    getBestMove(board: Board): Move | null {
+    getBestMove(board: Board, possibleMoves?: Move[]): Move | null {
+        if (possibleMoves && possibleMoves.length > 0) {
+            let bestMove: Move | null = null;
+            let maxEval = -Infinity;
+            const alpha = -Infinity;
+            const beta = Infinity;
+
+            for (const move of possibleMoves) {
+                const newBoard = board.clone();
+                newBoard.movePiece(move.start, move.end);
+                newBoard.switchTurn();
+
+                // Next level is minimizing
+                const evalScore = this.minimax(newBoard, this.depth - 1, alpha, beta, false).score;
+
+                if (evalScore > maxEval) {
+                    maxEval = evalScore;
+                    bestMove = move;
+                }
+            }
+            return bestMove;
+        }
+
         const result = this.minimax(board, this.depth, -Infinity, Infinity, true);
         return result.move;
     }

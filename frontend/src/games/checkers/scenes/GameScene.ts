@@ -318,8 +318,10 @@ export default class GameScene extends Phaser.Scene {
                 const startX = this.boardOffsetX;
                 const startY = this.boardOffsetY;
                 // Auto-select and highlight
-                this.highlightSquares(end.row, end.col, startX, startY);
-                this.showValidMoves(end.row, end.col, startX, startY);
+                if (this.boardLogic.currentPlayer === PlayerColor.RED) {
+                    this.highlightSquares(end.row, end.col, startX, startY);
+                    this.showValidMoves(end.row, end.col, startX, startY);
+                }
                 // Turn continues for current player
 
                 // If it's AI's turn and there's a chain, continue the AI turn
@@ -436,8 +438,14 @@ export default class GameScene extends Phaser.Scene {
         );
 
         if (captureMoves.length > 0) {
-            // Use AI to pick the best capture move
-            const move = this.ai.getBestMove(this.boardLogic.clone());
+            // Map capture moves to full Move objects
+            const possibleMoves = captureMoves.map(end => ({
+                start: { row: this.activeChainPiece!.r, col: this.activeChainPiece!.c },
+                end: end
+            }));
+
+            // Use AI to pick the best capture move from the VALID options only
+            const move = this.ai.getBestMove(this.boardLogic.clone(), possibleMoves);
 
             if (move) {
                 // Execute the next capture in the chain
