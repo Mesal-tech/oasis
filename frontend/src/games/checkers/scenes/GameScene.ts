@@ -66,13 +66,9 @@ export default class GameScene extends Phaser.Scene {
         this.turnIndicator = this.add.image(-25, 0, 'puck_red');
         this.turnIndicator.setDisplaySize(40, 40);
 
-        // Debug UI: Room Info
-        const roomText = this.add.text(10, 10, 'Room: --', { fontSize: '16px', color: '#000' });
-        const playersText = this.add.text(10, 30, 'Players: --', { fontSize: '16px', color: '#000' });
-
-        // Expose to class scope to update later
-        (this as any).roomInfoText = roomText;
-        (this as any).playerCountText = playersText;
+        // Debug UI removed for production
+        (this as any).roomInfoText = null;
+        (this as any).playerCountText = null;
 
         this.turnText = this.add.text(5, 0, 'Your Turn', {
             fontSize: '26px',
