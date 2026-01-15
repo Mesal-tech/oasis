@@ -191,4 +191,12 @@ export class Board {
             this.currentPlayer = state.currentPlayer;
         }
     }
+
+    // Serialize board state (for optimistic move snapshots)
+    toState() {
+        return {
+            grid: this.grid.map(row => row.map(p => p ? { ...p } : null)),
+            currentPlayer: this.currentPlayer
+        };
+    }
 }

@@ -150,15 +150,19 @@ export const App: React.FC<AppProps> = ({ gameOptions }) => {
                         <GameButton icon={<TfiMenuAlt />} onClick={handleMenu} />
                     </div>
 
-                    {/* Bottom Left */}
-                    <div className="ui-corner bottom-left absolute" style={{ padding: '10px', pointerEvents: 'auto', position: 'absolute', bottom: 0, left: 0 }}>
-                        <GameButton icon={<GrRefresh />} onClick={handleRestart} />
-                    </div>
+                    {/* Bottom Left - Hide Restart in Multiplayer */}
+                    {gameOptions?.gameMode !== 'multiplayer' && (
+                        <div className="ui-corner bottom-left absolute" style={{ padding: '10px', pointerEvents: 'auto', position: 'absolute', bottom: 0, left: 0 }}>
+                            <GameButton icon={<GrRefresh />} onClick={handleRestart} />
+                        </div>
+                    )}
 
-                    {/* Bottom Right */}
-                    <div className="ui-corner bottom-right absolute" style={{ padding: '10px', pointerEvents: 'auto', position: 'absolute', bottom: 0, right: 0 }}>
-                        <GameButton icon={<FaLightbulb />} onClick={handleHint} color="#00aa00" />
-                    </div>
+                    {/* Bottom Right - Hide Hint in Multiplayer */}
+                    {gameOptions?.gameMode !== 'multiplayer' && (
+                        <div className="ui-corner bottom-right absolute" style={{ padding: '10px', pointerEvents: 'auto', position: 'absolute', bottom: 0, right: 0 }}>
+                            <GameButton icon={<FaLightbulb />} onClick={handleHint} color="#00aa00" />
+                        </div>
+                    )}
                 </div>
 
                 {/* Menu Modal */}

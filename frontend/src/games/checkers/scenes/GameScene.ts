@@ -30,6 +30,8 @@ export default class GameScene extends Phaser.Scene {
     private myColor: PlayerColor = PlayerColor.RED; // Assigned by server
     private isFlipped: boolean = false;
     private pendingState: any = null;
+    private boardSnapshot: any = null; // For optimistic move rollback
+    private lastMoveHighlightGroup!: Phaser.GameObjects.Group;
 
     constructor() {
         super('GameScene');
@@ -86,6 +88,7 @@ export default class GameScene extends Phaser.Scene {
         this.pieceGroup = this.add.group();
         this.boardGroup = this.add.group();
         this.highlightGroup = this.add.group();
+        this.lastMoveHighlightGroup = this.add.group();
 
         this.createPieces();
         this.updateLayout(); // Run again to scale UI after creation
@@ -339,17 +342,27 @@ export default class GameScene extends Phaser.Scene {
         else if (this.selectedPiece && !clickedPiece) {
             // Attempt move
             if (this.isMultiplayer) {
+                const start = { row: this.selectedPiece.r, col: this.selectedPiece.c };
+                const end = { row, col };
+
+                // Check if move is valid locally first
+                if (!this.boardLogic.isValidMove(start, end)) {
+                    return; // Invalid move, don't even try
+                }
+
+                // OPTIMISTIC: Save snapshot before move
+                this.boardSnapshot = this.boardLogic.toState();
+
+                // OPTIMISTIC: Execute move locally (animation + logic)
+                this.executeMove(start, end);
+
+                // Emit to server for validation
                 if (this.socket) {
                     this.socket.emit('input', {
                         type: 'move',
-                        start: { row: this.selectedPiece.r, col: this.selectedPiece.c },
-                        end: { row, col }
+                        start: start,
+                        end: end
                     });
-                    // Clear selection locally to avoid confusion, 
-                    // or keep it until server confirms? 
-                    // Clearing is safer visual feedback that "command sent".
-                    this.selectedPiece = null;
-                    this.highlightGroup.clear(true, true);
                 }
             } else {
                 if (this.boardLogic.isValidMove({ row: this.selectedPiece.r, col: this.selectedPiece.c }, { row, col })) {
@@ -401,6 +414,7 @@ export default class GameScene extends Phaser.Scene {
             }
 
             this.createPieces(); // Full redraw to finalize state (kings, captures)
+            this.showLastMoveHighlight(start, end); // Highlight the last move
 
             // Check for game over immediately after capture (in case all pieces are gone)
             console.log('Checking for game over after move from', start, 'to', end);
@@ -617,7 +631,7 @@ export default class GameScene extends Phaser.Scene {
     }
 
     handleGameOver(winner: PlayerColor | 'draw' | null) {
-        console.log('handleGameOver called with winner:', winner);
+        console.log('handleGameOver called with winner:', winner, 'myColor:', this.myColor);
 
         // Calculate score based on remaining pieces
         const redPieces = this.boardLogic.countPieces(PlayerColor.RED);
@@ -627,15 +641,27 @@ export default class GameScene extends Phaser.Scene {
         let isDraw = false;
         let score = 0;
 
-        if (winner === PlayerColor.RED) {
-            isWinner = true;
-            score = redPieces * 10; // Score based on remaining pieces
-        } else if (winner === PlayerColor.BLUE) {
-            isWinner = false;
-            score = redPieces * 5; // Partial score for losing
-        } else if (winner === 'draw') {
+        if (winner === 'draw') {
             isDraw = true;
             score = redPieces * 7;
+        } else if (winner !== null) {
+            // In multiplayer, check if winner matches THIS player's color
+            // In AI mode, myColor is always RED (the human player)
+            if (this.isMultiplayer) {
+                isWinner = winner === this.myColor;
+            } else {
+                // AI mode: RED is the human player
+                isWinner = winner === PlayerColor.RED;
+            }
+
+            // Score based on perspective
+            if (isWinner) {
+                const myPieces = this.myColor === PlayerColor.RED ? redPieces : bluePieces;
+                score = myPieces * 10;
+            } else {
+                const myPieces = this.myColor === PlayerColor.RED ? redPieces : bluePieces;
+                score = myPieces * 5;
+            }
         }
 
         console.log('Emitting gameOver event:', { isWinner, isDraw, score, redPieces, bluePieces });
@@ -727,6 +753,53 @@ export default class GameScene extends Phaser.Scene {
         }
     }
 
+    /**
+     * Highlight the last move: bright on destination, subtle on origin and capture path.
+     */
+    showLastMoveHighlight(start: { row: number, col: number }, end: { row: number, col: number }) {
+        // Clear previous highlights
+        this.lastMoveHighlightGroup.clear(true, true);
+
+        const subtleColor = 0xFFCE31; // Yellow
+        const brightColor = 0x00FF88; // Green
+        const subtleAlpha = 0.25;
+        const brightAlpha = 0.45;
+
+        // Origin tile (subtle)
+        const startPos = this.getScreenPos(start.row, start.col);
+        const startHighlight = this.add.rectangle(
+            startPos.x, startPos.y,
+            this.tileSize * 0.9, this.tileSize * 0.9,
+            subtleColor, subtleAlpha
+        );
+        startHighlight.setStrokeStyle(2, subtleColor, 0.5);
+        this.lastMoveHighlightGroup.add(startHighlight);
+
+        // If capture (jump), highlight the midpoint tile
+        if (Math.abs(start.row - end.row) === 2) {
+            const midRow = (start.row + end.row) / 2;
+            const midCol = (start.col + end.col) / 2;
+            const midPos = this.getScreenPos(midRow, midCol);
+            const midHighlight = this.add.rectangle(
+                midPos.x, midPos.y,
+                this.tileSize * 0.9, this.tileSize * 0.9,
+                0xFF4444, subtleAlpha // Red for captured
+            );
+            midHighlight.setStrokeStyle(2, 0xFF4444, 0.5);
+            this.lastMoveHighlightGroup.add(midHighlight);
+        }
+
+        // Destination tile (bright)
+        const endPos = this.getScreenPos(end.row, end.col);
+        const endHighlight = this.add.rectangle(
+            endPos.x, endPos.y,
+            this.tileSize * 0.9, this.tileSize * 0.9,
+            brightColor, brightAlpha
+        );
+        endHighlight.setStrokeStyle(3, brightColor, 0.8);
+        this.lastMoveHighlightGroup.add(endHighlight);
+    }
+
     setupMultiplayer() {
         let playerId = this.registry.get('playerId');
         if (!playerId) {
@@ -812,9 +885,26 @@ export default class GameScene extends Phaser.Scene {
 
         this.socket.on('moveMade', (data: any) => {
             console.log('Client received moveMade event:', data);
-            // In multiplayer, DO NOT run local game logic.
-            // ONLY animate the visual move. Server state will arrive via gameState.
-            this.animateMoveOnly(data.start, data.end, data.result);
+            // Clear snapshot - move was accepted
+            this.boardSnapshot = null;
+
+            // If we already animated optimistically (it was our move), skip
+            // The server state will sync via gameState event
+            // Only animate if it's the opponent's move
+            if (data.color !== (this.myColor === PlayerColor.RED ? 'RED' : 'BLUE')) {
+                this.animateMoveOnly(data.start, data.end, data.result);
+            }
+        });
+
+        this.socket.on('invalidMove', () => {
+            console.warn('[Optimistic] Move rejected by server. Rolling back.');
+            if (this.boardSnapshot) {
+                this.boardLogic.sync(this.boardSnapshot);
+                this.createPieces();
+                this.updateTurnUI();
+                this.boardSnapshot = null;
+                this.isAnimating = false;
+            }
         });
 
         this.socket.on('gameOver', (result: any) => {
@@ -855,6 +945,7 @@ export default class GameScene extends Phaser.Scene {
 
         const onAnimComplete = () => {
             this.isAnimating = false;
+            this.showLastMoveHighlight(start, end); // Highlight the opponent's move
             // Apply any pending state from server
             if (this.pendingState) {
                 console.log('[MP] Applying pending state after animation');
