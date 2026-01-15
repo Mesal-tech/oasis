@@ -70,7 +70,7 @@ const GameModeModal = ({ onConfirm, onCancel, gameId }) => {
   return (
     <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-[9999]">
       <div className="bg-[#171717] border-2 border-[#333333] rounded-[25px] p-10 max-w-[600px] w-[90%]">
-        <h2 className="text-white mb-8 text-3xl text-center">🎮 Select Game Mode</h2>
+        <h2 className="text-white mb-8 text-3xl text-center">Select Game Mode</h2>
         <div className="flex flex-col gap-6 mb-8">
           <div onClick={() => setSelectedMode('ai')} className={`p-6 bg-[#282828] border-2 rounded-lg cursor-pointer transition-all ${selectedMode === 'ai' ? 'bg-[#00d4ff]/30 border-[#00d4ff] scale-[1.02]' : 'border-[#333333] hover:bg-[#00d4ff]/10 hover:scale-[1.02]'}`}>
             <div className="flex items-center gap-4 mb-2">
@@ -82,14 +82,14 @@ const GameModeModal = ({ onConfirm, onCancel, gameId }) => {
               <span className="px-3 py-1 bg-[#00ff88] text-black rounded font-bold text-xs">ACTIVE</span>
             </div>
           </div>
-          <div className="p-6 bg-[#282828] border-2 border-[#333333] rounded-lg opacity-50 cursor-not-allowed">
+          <div onClick={() => setSelectedMode('multiplayer')} className={`p-6 bg-[#282828] border-2 rounded-lg cursor-pointer transition-all ${selectedMode === 'multiplayer' ? 'bg-[#00d4ff]/30 border-[#00d4ff] scale-[1.02]' : 'border-[#333333] hover:bg-[#00d4ff]/10 hover:scale-[1.02]'}`}>
             <div className="flex items-center gap-4 mb-2">
               <span className="text-4xl">⚔️</span>
               <div className="flex-1">
-                <div className="text-xl font-bold text-[#888]">PvP Mode</div>
-                <div className="text-[#666] text-sm">Play against other players</div>
+                <div className="text-xl font-bold text-white">PvP Mode</div>
+                <div className="text-[#888] text-sm">Play against other players</div>
               </div>
-              <span className="px-3 py-1 bg-[#ff4444] text-white rounded font-bold text-xs">COMING SOON</span>
+              <span className="px-3 py-1 bg-[#00ff88] text-black rounded font-bold text-xs">ACTIVE</span>
             </div>
           </div>
         </div>
@@ -99,6 +99,93 @@ const GameModeModal = ({ onConfirm, onCancel, gameId }) => {
             Start Game
           </button>
         </div>
+      </div>
+    </div>
+  );
+};
+
+const MatchmakingModal = ({ onConfirm, onCancel }) => {
+  const [view, setView] = useState('main'); // 'main', 'create', 'join'
+  const [roomCode, setRoomCode] = useState('');
+  const [generatedCode, setGeneratedCode] = useState('');
+
+  const generateCode = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setGeneratedCode(code);
+    setView('create');
+  };
+
+  const handleQuickMatch = () => {
+    onConfirm({ joinType: 'quickmatch', roomCode: null });
+  };
+
+  const handleCreateRoom = () => {
+    onConfirm({ joinType: 'private', roomCode: generatedCode });
+  };
+
+  const handleJoinRoom = () => {
+    if (roomCode.length === 6) {
+      onConfirm({ joinType: 'private', roomCode: roomCode.toUpperCase() });
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-[9999]">
+      <div className="bg-[#171717] border-2 border-[#333333] rounded-[25px] p-10 max-w-[500px] w-[90%]">
+        {view === 'main' && (
+          <>
+            <h2 className="text-white mb-8 text-3xl text-center">PvP Matchmaking</h2>
+            <div className="flex flex-col gap-4 mb-8">
+              <button onClick={handleQuickMatch} className="w-full p-5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-xl text-lg hover:from-cyan-400 hover:to-blue-500 transition">
+                Quick Match
+              </button>
+              <button onClick={generateCode} className="w-full p-5 bg-[#282828] border-2 border-[#444] text-white font-bold rounded-xl text-lg hover:bg-[#333] transition">
+                Create Private Room
+              </button>
+              <button onClick={() => setView('join')} className="w-full p-5 bg-[#282828] border-2 border-[#444] text-white font-bold rounded-xl text-lg hover:bg-[#333] transition">
+                Join Private Room
+              </button>
+            </div>
+            <button onClick={onCancel} className="w-full py-3 bg-transparent text-gray-400 border border-gray-600 rounded-lg hover:bg-gray-800 transition">Back</button>
+          </>
+        )}
+
+        {view === 'create' && (
+          <>
+            <h2 className="text-white mb-4 text-2xl text-center">Private Room Created</h2>
+            <p className="text-gray-400 text-center mb-6">Share this code with your friend:</p>
+            <div className="bg-[#282828] border-2 border-cyan-500 rounded-xl p-6 text-center mb-8">
+              <span className="text-4xl font-mono font-bold text-cyan-400 tracking-widest">{generatedCode}</span>
+            </div>
+            <button onClick={handleCreateRoom} className="w-full p-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-xl text-lg hover:from-cyan-400 hover:to-blue-500 transition mb-4">
+              Start Waiting
+            </button>
+            <button onClick={() => setView('main')} className="w-full py-3 bg-transparent text-gray-400 border border-gray-600 rounded-lg hover:bg-gray-800 transition">Back</button>
+          </>
+        )}
+
+        {view === 'join' && (
+          <>
+            <h2 className="text-white mb-4 text-2xl text-center">Join Private Room</h2>
+            <p className="text-gray-400 text-center mb-6">Enter the 6-character room code:</p>
+            <input
+              type="text"
+              value={roomCode}
+              onChange={(e) => setRoomCode(e.target.value.toUpperCase().slice(0, 6))}
+              placeholder="ABCD23"
+              className="w-full p-4 bg-[#282828] border-2 border-gray-600 rounded-xl text-center text-2xl font-mono font-bold text-white tracking-widest mb-8 focus:border-cyan-500 outline-none"
+              maxLength={6}
+            />
+            <button onClick={handleJoinRoom} disabled={roomCode.length !== 6} className={`w-full p-4 font-bold rounded-xl text-lg transition mb-4 ${roomCode.length === 6 ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-400 hover:to-blue-500' : 'bg-gray-600 text-gray-400 cursor-not-allowed'}`}>
+              Join Room
+            </button>
+            <button onClick={() => setView('main')} className="w-full py-3 bg-transparent text-gray-400 border border-gray-600 rounded-lg hover:bg-gray-800 transition">Back</button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -170,6 +257,7 @@ export const GameScreen = () => {
   const [selectedSkills, setSelectedSkills] = useState([]);
   const [activeSkillSlot, setActiveSkillSlot] = useState(null); // index of slot being edited
   const [showModeModal, setShowModeModal] = useState(false);
+  const [showMatchmakingModal, setShowMatchmakingModal] = useState(false);
 
   // Game tracking
   const [savingMatch, setSavingMatch] = useState(false);
@@ -294,11 +382,12 @@ export const GameScreen = () => {
     }
   };
 
-  const launchGame = async (mode = 'ai') => {
+  const launchGame = async (mode = 'ai', matchmakingOptions = {}) => {
     setGameState('playing');
     setShowModeModal(false);
-    gameStartTimeRef.current = Date.now(); // Use ref instead of state
-    console.log('🎮 Game started at:', gameStartTimeRef.current);
+    setShowMatchmakingModal(false);
+    gameStartTimeRef.current = Date.now();
+    console.log('Game started at:', gameStartTimeRef.current, 'Mode:', mode, 'Options:', matchmakingOptions);
 
     // Allow DOM to update first so container exists
     setTimeout(async () => {
@@ -403,7 +492,14 @@ export const GameScreen = () => {
           container.appendChild(d);
 
           const root = createRoot(d);
-          root.render(<CheckersApp />);
+          const options = {
+            gameMode: mode, // 'ai' or 'multiplayer'
+            playerId: player?.id,
+            username: nickname || player?.username,
+            joinType: matchmakingOptions.joinType || 'quickmatch',
+            roomCode: matchmakingOptions.roomCode || null
+          };
+          root.render(<CheckersApp gameOptions={options} />);
           reactRootRef.current = root;
 
           // Listen for game over event from checkers
@@ -494,7 +590,7 @@ export const GameScreen = () => {
       {gameState === 'lobby' && (
         <GameLobby
           gameData={gameData}
-          onPlay={() => launchGame()}
+          onPlay={() => setShowModeModal(true)}
           nickname={nickname}
           setNickname={setNickname}
           selectedSkin={selectedSkin}
@@ -523,8 +619,27 @@ export const GameScreen = () => {
 
       {showModeModal && (
         <GameModeModal
-          onConfirm={launchGame}
+          onConfirm={(mode) => {
+            if (mode === 'multiplayer') {
+              setShowModeModal(false);
+              setShowMatchmakingModal(true);
+            } else {
+              launchGame(mode);
+            }
+          }}
           onCancel={() => setShowModeModal(false)}
+        />
+      )}
+
+      {showMatchmakingModal && (
+        <MatchmakingModal
+          onConfirm={(options) => {
+            launchGame('multiplayer', options);
+          }}
+          onCancel={() => {
+            setShowMatchmakingModal(false);
+            setShowModeModal(true);
+          }}
         />
       )}
 

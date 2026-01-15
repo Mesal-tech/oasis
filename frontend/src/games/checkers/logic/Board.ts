@@ -78,7 +78,7 @@ export class Board {
         return validMoves.some(m => m.row === end.row && m.col === end.col);
     }
 
-    movePiece(start: Position, end: Position): { captured: boolean, promoted: boolean } {
+    movePiece(start: Position, end: Position): { captured: boolean, promoted: boolean, moved: boolean } {
         const piece = this.getPiece(start.row, start.col);
         let captured = false;
         let promoted = false;
@@ -101,8 +101,9 @@ export class Board {
                 piece.type = PieceType.KING;
                 promoted = true;
             }
+            return { captured, promoted, moved: true };
         }
-        return { captured, promoted };
+        return { captured, promoted, moved: false };
     }
 
     switchTurn() {
@@ -175,5 +176,19 @@ export class Board {
         }
 
         return { gameOver: false, winner: null };
+    }
+
+    // Sync board state from server
+    sync(state: any) {
+        console.log(`[Board] Syncing state. CurrentPlayer: ${this.currentPlayer} -> New: ${state.currentPlayer}`);
+        if (state.grid) {
+            // Restore grid with Piece objects
+            this.grid = state.grid.map((row: any[]) =>
+                row.map(p => p ? { ...p } : null)
+            );
+        }
+        if (state.currentPlayer) {
+            this.currentPlayer = state.currentPlayer;
+        }
     }
 }

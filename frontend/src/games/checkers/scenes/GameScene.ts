@@ -1,7 +1,11 @@
+/// <reference types="vite/client" />
 import Phaser from 'phaser';
 import { Board } from '../logic/Board';
 import { PlayerColor, PieceType } from '../logic/Piece';
 import { AI } from '../logic/AI';
+import { io, Socket } from 'socket.io-client';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export default class GameScene extends Phaser.Scene {
     private boardLogic!: Board;
@@ -21,6 +25,11 @@ export default class GameScene extends Phaser.Scene {
     private background!: Phaser.GameObjects.Image;
     private boardBg!: Phaser.GameObjects.Image;
     private turnContainer!: Phaser.GameObjects.Container;
+    private socket: Socket | null = null;
+    private isMultiplayer: boolean = false;
+    private myColor: PlayerColor = PlayerColor.RED; // Assigned by server
+    private isFlipped: boolean = false;
+    private pendingState: any = null;
 
     constructor() {
         super('GameScene');
@@ -28,7 +37,15 @@ export default class GameScene extends Phaser.Scene {
 
     create() {
         this.boardLogic = new Board();
-        this.ai = new AI(3, PlayerColor.BLUE);
+
+        // Check Registry
+        const mode = this.registry.get('gameMode');
+        console.log('GameScene created. Registry gameMode:', mode, 'PlayerId:', this.registry.get('playerId'));
+        this.isMultiplayer = mode === 'multiplayer';
+
+        if (!this.isMultiplayer) {
+            this.ai = new AI(3, PlayerColor.BLUE);
+        }
 
         // 1. Background
         this.background = this.add.image(0, 0, 'bg_wood');
@@ -46,6 +63,14 @@ export default class GameScene extends Phaser.Scene {
         // Use Sprite for the indicator
         this.turnIndicator = this.add.image(-25, 0, 'puck_red');
         this.turnIndicator.setDisplaySize(40, 40);
+
+        // Debug UI: Room Info
+        const roomText = this.add.text(10, 10, 'Room: --', { fontSize: '16px', color: '#000' });
+        const playersText = this.add.text(10, 30, 'Players: --', { fontSize: '16px', color: '#000' });
+
+        // Expose to class scope to update later
+        (this as any).roomInfoText = roomText;
+        (this as any).playerCountText = playersText;
 
         this.turnText = this.add.text(5, 0, 'Your Turn', {
             fontSize: '26px',
@@ -76,8 +101,27 @@ export default class GameScene extends Phaser.Scene {
         this.events.on('restart', this.restartGame, this);
         this.events.on('showHint', this.showHint, this);
         this.scale.on('resize', this.handleResize, this);
+        this.events.on(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
+        this.events.on(Phaser.Scenes.Events.DESTROY, this.shutdown, this);
 
         this.handleResize(); // Initial positioning
+
+        // Connect LAST to ensure all groups are initialized
+        if (this.isMultiplayer) {
+            this.setupMultiplayer();
+        }
+    }
+
+    shutdown() {
+        if (this.socket) {
+            this.socket.off('connect');
+            this.socket.off('joined');
+            this.socket.off('gameState');
+            this.socket.off('moveMade');
+            this.socket.off('gameOver');
+            this.socket.disconnect();
+            this.socket = null;
+        }
     }
 
     handleResize() {
@@ -162,9 +206,10 @@ export default class GameScene extends Phaser.Scene {
             for (let col = 0; col < 8; col++) {
                 const piece = this.boardLogic.getPiece(row, col);
                 if (piece) {
-                    // Coordinates
-                    const x = startX + col * this.tileSize + this.tileSize / 2;
-                    const y = startY + row * this.tileSize + this.tileSize / 2;
+                    // Coordinates using helper
+                    const pos = this.getScreenPos(row, col);
+                    const x = pos.x;
+                    const y = pos.y;
 
                     // Use Sprite/Container instead of DOM
                     const texture = piece.color === PlayerColor.RED ? 'puck_red' : 'puck_blue';
@@ -214,17 +259,38 @@ export default class GameScene extends Phaser.Scene {
         });
     }
 
+    getScreenPos(row: number, col: number) {
+        let visualRow = row;
+        let visualCol = col;
+
+        if (this.isFlipped) {
+            visualRow = 7 - row;
+            visualCol = 7 - col;
+        }
+
+        const x = this.boardOffsetX + visualCol * this.tileSize + this.tileSize / 2;
+        const y = this.boardOffsetY + visualRow * this.tileSize + this.tileSize / 2;
+        return { x, y };
+    }
+
     handleInput(pointer: Phaser.Input.Pointer) {
         const startX = this.boardOffsetX;
         const startY = this.boardOffsetY;
         const localX = pointer.x - startX;
         const localY = pointer.y - startY;
 
-        const col = Math.floor(localX / this.tileSize);
-        const row = Math.floor(localY / this.tileSize);
+        let col = Math.floor(localX / this.tileSize);
+        let row = Math.floor(localY / this.tileSize);
+
+        if (this.isFlipped) {
+            col = 7 - col;
+            row = 7 - row;
+        }
 
         if (row >= 0 && row < 8 && col >= 0 && col < 8) {
             this.handleSquareClick(row, col);
+        } else {
+            console.log('Ignored input: out of bounds', row, col);
         }
     }
 
@@ -241,6 +307,18 @@ export default class GameScene extends Phaser.Scene {
             // But 'Move' logic uses this.selectedPiece, which we set in executeMove.
         }
 
+        // Multiplayer Check: Can only interact with OWN pieces
+        if (this.isMultiplayer && this.myColor !== undefined) {
+            console.log(`[Input] isMultiplayer check. MyColor: ${this.myColor}, ClickedPieceColor: ${clickedPiece?.color}`);
+            // If clicking a piece that is NOT mine, return
+            if (clickedPiece && clickedPiece.color !== this.myColor) {
+                console.log('[Input] Ignored: Clicked opponent piece');
+                return;
+            }
+            // NOTE: If clicking empty square, we allow it (for move destination)
+        }
+
+        console.log(`[Input] Checking turn. CurrentPlayer: ${this.boardLogic.currentPlayer}, ClickedPieceColor: ${clickedPiece?.color}`);
         const isCurrentPlayerPiece = clickedPiece && clickedPiece.color === this.boardLogic.currentPlayer;
         const startX = this.boardOffsetX;
         const startY = this.boardOffsetY;
@@ -260,8 +338,23 @@ export default class GameScene extends Phaser.Scene {
         // Move
         else if (this.selectedPiece && !clickedPiece) {
             // Attempt move
-            if (this.boardLogic.isValidMove({ row: this.selectedPiece.r, col: this.selectedPiece.c }, { row, col })) {
-                this.executeMove({ row: this.selectedPiece.r, col: this.selectedPiece.c }, { row, col });
+            if (this.isMultiplayer) {
+                if (this.socket) {
+                    this.socket.emit('input', {
+                        type: 'move',
+                        start: { row: this.selectedPiece.r, col: this.selectedPiece.c },
+                        end: { row, col }
+                    });
+                    // Clear selection locally to avoid confusion, 
+                    // or keep it until server confirms? 
+                    // Clearing is safer visual feedback that "command sent".
+                    this.selectedPiece = null;
+                    this.highlightGroup.clear(true, true);
+                }
+            } else {
+                if (this.boardLogic.isValidMove({ row: this.selectedPiece.r, col: this.selectedPiece.c }, { row, col })) {
+                    this.executeMove({ row: this.selectedPiece.r, col: this.selectedPiece.c }, { row, col });
+                }
             }
         }
     }
@@ -286,7 +379,27 @@ export default class GameScene extends Phaser.Scene {
 
 
         const onMoveComplete = () => {
-            const { captured, promoted } = this.boardLogic.movePiece(start, end);
+            const { captured, promoted, moved } = this.boardLogic.movePiece(start, end);
+
+            // If the piece was NOT moved (e.g., start square was empty), 
+            // it means the board state was likely already synced by the server.
+            // In this case, we SHOULD NOT switch the turn locally, because 'sync' 
+            // already set the correct currentPlayer.
+            if (!moved) {
+                console.log('Move logic skipped (piece missing). Assuming state already synced.');
+                this.createPieces(); // Ensure visuals are correct
+                this.isAnimating = false;
+
+                // Apply queued state if any (just in case)
+                if (this.pendingState) {
+                    this.boardLogic.sync(this.pendingState);
+                    this.createPieces();
+                    this.updateTurnUI();
+                    this.pendingState = null;
+                }
+                return;
+            }
+
             this.createPieces(); // Full redraw to finalize state (kings, captures)
 
             // Check for game over immediately after capture (in case all pieces are gone)
@@ -351,6 +464,15 @@ export default class GameScene extends Phaser.Scene {
             }
 
             this.isAnimating = false;
+
+            // Apply queued state if any
+            if (this.pendingState) {
+                console.log('Applying pending state after animation');
+                this.boardLogic.sync(this.pendingState);
+                this.createPieces();
+                this.updateTurnUI();
+                this.pendingState = null;
+            }
         };
 
 
@@ -386,8 +508,9 @@ export default class GameScene extends Phaser.Scene {
                 });
             }
 
-            const targetX = this.boardOffsetX + end.col * this.tileSize + this.tileSize / 2;
-            const targetY = this.boardOffsetY + end.row * this.tileSize + this.tileSize / 2;
+            const pos = this.getScreenPos(end.row, end.col);
+            const targetX = pos.x;
+            const targetY = pos.y;
 
             this.tweens.add({
                 targets: visualPiece,
@@ -479,18 +602,16 @@ export default class GameScene extends Phaser.Scene {
 
     highlightSquares(row: number, col: number, startX: number, startY: number) {
         this.highlightGroup.clear(true, true);
-        const x = startX + col * this.tileSize + this.tileSize / 2;
-        const y = startY + row * this.tileSize + this.tileSize / 2;
-        const h = this.highlightGroup.create(x, y, 'highlight');
+        const pos = this.getScreenPos(row, col);
+        const h = this.highlightGroup.create(pos.x, pos.y, 'highlight');
         h.setDisplaySize(this.tileSize, this.tileSize);
     }
 
     showValidMoves(row: number, col: number, startX: number, startY: number) {
         const moves = this.boardLogic.getValidMoves({ row, col });
         moves.forEach(m => {
-            const x = startX + m.col * this.tileSize + this.tileSize / 2;
-            const y = startY + m.row * this.tileSize + this.tileSize / 2;
-            const h = this.highlightGroup.create(x, y, 'valid_move');
+            const pos = this.getScreenPos(m.row, m.col);
+            const h = this.highlightGroup.create(pos.x, pos.y, 'valid_move');
             h.setDisplaySize(this.tileSize, this.tileSize);
         });
     }
@@ -547,8 +668,9 @@ export default class GameScene extends Phaser.Scene {
             const startY = this.boardOffsetY;
 
             // Highlight the piece to move with a pulsing effect
-            const pieceX = startX + bestMove.start.col * this.tileSize + this.tileSize / 2;
-            const pieceY = startY + bestMove.start.row * this.tileSize + this.tileSize / 2;
+            const pos = this.getScreenPos(bestMove.start.row, bestMove.start.col);
+            const pieceX = pos.x;
+            const pieceY = pos.y;
 
             const hintPiece = this.add.circle(pieceX, pieceY, this.tileSize * 0.5, 0xFFCE31, 0.4);
             this.highlightGroup.add(hintPiece);
@@ -565,8 +687,9 @@ export default class GameScene extends Phaser.Scene {
             });
 
             // Highlight the destination with an arrow or marker
-            const destX = startX + bestMove.end.col * this.tileSize + this.tileSize / 2;
-            const destY = startY + bestMove.end.row * this.tileSize + this.tileSize / 2;
+            const destPos = this.getScreenPos(bestMove.end.row, bestMove.end.col);
+            const destX = destPos.x;
+            const destY = destPos.y;
 
             const hintDest = this.add.circle(destX, destY, this.tileSize * 0.4, 0x00FF88, 0.5);
             this.highlightGroup.add(hintDest);
@@ -604,12 +727,177 @@ export default class GameScene extends Phaser.Scene {
         }
     }
 
+    setupMultiplayer() {
+        let playerId = this.registry.get('playerId');
+        if (!playerId) {
+            const storedId = localStorage.getItem('checkers_guest_id');
+            if (storedId) {
+                playerId = storedId;
+            } else {
+                playerId = 'guest_' + Math.floor(Math.random() * 100000);
+                localStorage.setItem('checkers_guest_id', playerId);
+            }
+            console.log('Using Guest ID:', playerId);
+        }
+
+        // Read matchmaking options from registry
+        const joinType = this.registry.get('joinType') || 'quickmatch';
+        const roomCode = this.registry.get('roomCode') || null;
+
+        this.socket = io(`${API_URL}/checkers`, {
+            query: {
+                playerId: playerId,
+                username: this.registry.get('username') || 'Guest'
+            }
+        });
+
+        this.socket.on('connect', () => {
+            console.log('Connected to Checkers Server. JoinType:', joinType, 'RoomCode:', roomCode);
+            this.socket?.emit('join', {
+                playerId: playerId,
+                username: this.registry.get('username') || 'Guest',
+                joinType: joinType,
+                roomCode: roomCode
+            });
+        });
+
+        this.socket.on('joined', (data: any) => {
+            console.log('Joined room:', data);
+
+            // Update Debug UI
+            if ((this as any).roomInfoText) (this as any).roomInfoText.setText(`Room: ${data.roomId}`);
+            if ((this as any).playerCountText) (this as any).playerCountText.setText(`Players: ${data.players.length}`);
+
+            this.myColor = data.yourColor === 'RED' ? PlayerColor.RED : PlayerColor.BLUE;
+
+            // Flip board if BLUE
+            this.isFlipped = this.myColor === PlayerColor.BLUE;
+            if (this.isFlipped) {
+                console.log('Flipping board for Blue player');
+                this.createPieces();
+            }
+        });
+
+        this.socket.on('playerJoined', (data: any) => {
+            console.log('Another player joined:', data);
+            // We don't have the full list here easily unless we track it, 
+            // but we can increment or just say "Players: updated"
+            // Ideally server sends full list or count. 
+            // lets just append to a local list logic? 
+            // For now, simpler: asking server or just "Players: 2" since max is 2
+            if ((this as any).playerCountText) (this as any).playerCountText.setText(`Players: 2 (Full)`);
+        });
+
+        this.socket.on('playerLeft', (data: any) => {
+            console.log('Player left:', data);
+            if ((this as any).playerCountText) (this as any).playerCountText.setText(`Players: 1`);
+        });
+
+        this.socket.on('gameState', (state: any) => {
+            // Guard: If animating a move, don't clobber state yet.
+            // onMoveComplete will trigger a sync or createPieces eventually.
+            // Guard: If animating a move, don't clobber state yet.
+            // onMoveComplete will trigger a sync or createPieces eventually.
+            if (this.isAnimating) {
+                console.log('Queuing gameState update while animating');
+                this.pendingState = state;
+                return;
+            }
+            this.boardLogic.sync(state);
+            this.createPieces();
+            this.updateTurnUI();
+
+            // Sync chain state if needed, though 'moveMade' handles animation logic best
+        });
+
+        this.socket.on('moveMade', (data: any) => {
+            console.log('Client received moveMade event:', data);
+            // In multiplayer, DO NOT run local game logic.
+            // ONLY animate the visual move. Server state will arrive via gameState.
+            this.animateMoveOnly(data.start, data.end, data.result);
+        });
+
+        this.socket.on('gameOver', (result: any) => {
+            this.handleGameOver(result.winner);
+        });
+    }
+
     restartGame() {
+        if (this.isMultiplayer) return; // Cannot restart multiplayer locally
+
         this.boardLogic.reset();
         this.createPieces();
         this.highlightGroup.clear(true, true);
         this.selectedPiece = null;
         this.isAnimating = false;
         this.isAiTurn = false;
+    }
+
+    /**
+     * Multiplayer-only: Animate a move without running local game logic.
+     * The server state (via gameState event) is the source of truth.
+     */
+    animateMoveOnly(start: { row: number, col: number }, end: { row: number, col: number }, result?: { captured?: boolean, promoted?: boolean }) {
+        this.isAnimating = true;
+        this.highlightGroup.clear(true, true);
+        this.selectedPiece = null;
+
+        // Find the visual piece to animate
+        let visualPiece: Phaser.GameObjects.Container | null = null;
+        const children = this.pieceGroup.getChildren();
+        for (const child of children) {
+            const container = child as Phaser.GameObjects.Container;
+            if (container.getData('r') === start.row && container.getData('c') === start.col) {
+                visualPiece = container;
+                break;
+            }
+        }
+
+        const onAnimComplete = () => {
+            this.isAnimating = false;
+            // Apply any pending state from server
+            if (this.pendingState) {
+                console.log('[MP] Applying pending state after animation');
+                this.boardLogic.sync(this.pendingState);
+                this.createPieces();
+                this.updateTurnUI();
+                this.pendingState = null;
+            }
+        };
+
+        if (visualPiece) {
+            visualPiece.setDepth(100);
+
+            // Animate capture fade-out if applicable
+            if (result?.captured || Math.abs(start.row - end.row) === 2) {
+                const midRow = (start.row + end.row) / 2;
+                const midCol = (start.col + end.col) / 2;
+                const capturedVisual = this.getVisualPiece(midRow, midCol);
+                if (capturedVisual) {
+                    this.tweens.add({
+                        targets: capturedVisual,
+                        alpha: 0,
+                        scaleX: 0.5,
+                        scaleY: 0.5,
+                        duration: 300,
+                        ease: 'Power2'
+                    });
+                }
+            }
+
+            const pos = this.getScreenPos(end.row, end.col);
+            this.tweens.add({
+                targets: visualPiece,
+                x: pos.x,
+                y: pos.y,
+                duration: 300,
+                ease: 'Power2',
+                onComplete: onAnimComplete
+            });
+        } else {
+            // No visual piece found (maybe already synced), just complete
+            console.warn('[MP] animateMoveOnly: Could not find visual piece at', start);
+            onAnimComplete();
+        }
     }
 }

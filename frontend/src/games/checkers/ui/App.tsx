@@ -8,7 +8,11 @@ import { GrRefresh } from "react-icons/gr";
 import Phaser from 'phaser';
 import { PhaserGame } from '../components/PhaserGame';
 
-export const App: React.FC = () => {
+interface AppProps {
+    gameOptions?: any;
+}
+
+export const App: React.FC<AppProps> = ({ gameOptions }) => {
     const [game, setGame] = useState<Phaser.Game | null>(null);
     const [showGameOver, setShowGameOver] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
@@ -138,7 +142,7 @@ export const App: React.FC = () => {
     return (
         <div className="checkers-app">
             <div id="app-wrapper" className="relative w-full h-full" style={{ position: 'relative', width: '100%', height: '100%' }}>
-                <PhaserGame onGameCreated={setGame} />
+                <PhaserGame onGameCreated={setGame} gameOptions={gameOptions} />
 
                 <div className="ui-overlay absolute top-0 left-0 w-full h-full pointer-events-none" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
                     {/* Top Right */}
