@@ -230,6 +230,7 @@ export default class GameScene extends Phaser.Scene {
 
                     container.setData('r', row);
                     container.setData('c', col);
+                    container.setDepth(10); // Ensure pieces are above board highlights (depth 1)
 
                     this.pieceGroup.add(container);
                 }
@@ -638,6 +639,7 @@ export default class GameScene extends Phaser.Scene {
         const pos = this.getScreenPos(row, col);
         const h = this.highlightGroup.create(pos.x, pos.y, 'highlight');
         h.setDisplaySize(this.tileSize, this.tileSize);
+        h.setDepth(5); // Render below pieces (depth 10)
     }
 
     showValidMoves(row: number, col: number, startX: number, startY: number) {
@@ -646,6 +648,7 @@ export default class GameScene extends Phaser.Scene {
             const pos = this.getScreenPos(m.row, m.col);
             const h = this.highlightGroup.create(pos.x, pos.y, 'valid_move');
             h.setDisplaySize(this.tileSize, this.tileSize);
+            h.setDepth(5); // Render below pieces (depth 10)
         });
     }
 
@@ -757,6 +760,7 @@ export default class GameScene extends Phaser.Scene {
             graphics.moveTo(pieceX, pieceY);
             graphics.lineTo(destX, destY);
             graphics.strokePath();
+            graphics.setDepth(20); // Render above pieces
             this.highlightGroup.add(graphics);
 
             // Fade out the arrow
@@ -779,10 +783,12 @@ export default class GameScene extends Phaser.Scene {
         // Clear previous highlights
         this.lastMoveHighlightGroup.clear(true, true);
 
-        const subtleColor = 0xFFCE31; // Yellow
-        const brightColor = 0x00FF88; // Green
+        // Subtle blue theme with low opacity
+        const subtleColor = 0x4A90D9; // Light blue for origin
+        const brightColor = 0x5BA0E8; // Slightly brighter blue for destination
+        const captureColor = 0x3A70B9; // Medium blue for capture
         const subtleAlpha = 0.25;
-        const brightAlpha = 0.45;
+        const brightAlpha = 0.35;
 
         // Origin tile (subtle)
         const startPos = this.getScreenPos(start.row, start.col);
@@ -791,7 +797,8 @@ export default class GameScene extends Phaser.Scene {
             this.tileSize * 0.9, this.tileSize * 0.9,
             subtleColor, subtleAlpha
         );
-        startHighlight.setStrokeStyle(2, subtleColor, 0.5);
+        startHighlight.setStrokeStyle(1, subtleColor, 0.3);
+        startHighlight.setDepth(1); // Render below pieces
         this.lastMoveHighlightGroup.add(startHighlight);
 
         // If capture (jump), highlight the midpoint tile
@@ -802,20 +809,22 @@ export default class GameScene extends Phaser.Scene {
             const midHighlight = this.add.rectangle(
                 midPos.x, midPos.y,
                 this.tileSize * 0.9, this.tileSize * 0.9,
-                0xFF4444, subtleAlpha // Red for captured
+                captureColor, subtleAlpha
             );
-            midHighlight.setStrokeStyle(2, 0xFF4444, 0.5);
+            midHighlight.setStrokeStyle(1, captureColor, 0.3);
+            midHighlight.setDepth(1); // Render below pieces
             this.lastMoveHighlightGroup.add(midHighlight);
         }
 
-        // Destination tile (bright)
+        // Destination tile (slightly more visible)
         const endPos = this.getScreenPos(end.row, end.col);
         const endHighlight = this.add.rectangle(
             endPos.x, endPos.y,
             this.tileSize * 0.9, this.tileSize * 0.9,
             brightColor, brightAlpha
         );
-        endHighlight.setStrokeStyle(3, brightColor, 0.8);
+        endHighlight.setStrokeStyle(2, brightColor, 0.4);
+        endHighlight.setDepth(1); // Render below pieces
         this.lastMoveHighlightGroup.add(endHighlight);
     }
 
