@@ -392,6 +392,25 @@ export default class GameScene extends Phaser.Scene {
 
 
         const onMoveComplete = () => {
+            // MULTIPLAYER: Skip ALL local game logic. Server is authoritative.
+            // We only ran animation optimistically. Wait for gameState sync.
+            if (this.isMultiplayer) {
+                this.isAnimating = false;
+                this.showLastMoveHighlight(start, end);
+
+                // Apply queued state if any
+                if (this.pendingState) {
+                    console.log('[MP] Applying pending state after optimistic animation');
+                    this.boardLogic.sync(this.pendingState);
+                    this.createPieces();
+                    this.showLastMoveHighlight(start, end); // Re-apply after redraw
+                    this.updateTurnUI();
+                    this.pendingState = null;
+                }
+                return;
+            }
+
+            // AI MODE: Run full local game logic
             const { captured, promoted, moved } = this.boardLogic.movePiece(start, end);
 
             // If the piece was NOT moved (e.g., start square was empty), 
