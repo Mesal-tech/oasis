@@ -531,9 +531,9 @@ export const GameScreen = () => {
           };
 
         } else if (gameData.id === 'whot') {
-          // Whot Integration
-          const mod = await import('../../games/whot/index.js');
-          const Game = mod.WhotGame;
+          // Whot Integration (New React Version)
+          const mod = await import('../../games/whot/ui/App');
+          const WhotApp = mod.WhotApp;
 
           const d = document.createElement('div');
           d.id = 'whot-root';
@@ -541,33 +541,26 @@ export const GameScreen = () => {
           d.style.height = '100%';
           container.appendChild(d);
 
-          const game = new Game('whot-root');
-          game.launch({
-            nickname: nickname || 'You',
-            difficulty: 'medium'
-          });
-          gameInstanceRef.current = game;
+          const root = createRoot(d);
+          root.render(
+            <WhotApp 
+              gameOptions={{
+                playerName: nickname || 'You',
+                difficulty: 'medium'
+              }} 
+            />
+          );
+          reactRootRef.current = root;
 
-          // Attach game over listener
-          setTimeout(() => {
-            if (game.game && game.game.events) {
-              game.game.events.on('gameOver', async (score, isWinner) => {
-                console.log('🃏 Whot gameOver event received. Score:', score, 'Winner:', isWinner);
-
-                // Stop music
-                if (game.stopMusic) {
-                  game.stopMusic();
-                }
-
-                const finalScore = score || 0;
-                setGameResult({ score: finalScore, length: 0, isWinner });
-                setGameState('gameover');
-
-                // Save match to backend
-                await saveMatchResult(finalScore, isWinner, { gameType: 'whot' });
-              });
+          // Store cleanup function
+          gameInstanceRef.current = {
+            cleanup: () => {
+              if (reactRootRef.current) {
+                reactRootRef.current.unmount();
+                reactRootRef.current = null;
+              }
             }
-          }, 500);
+          };
 
         } else {
           // Placeholder

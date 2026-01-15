@@ -1,0 +1,70 @@
+{
+  "deckName": "Naija Whot (Standard)",
+  "totalCards": 54,
+  "shapes": [
+    {
+      "name": "Circle",
+      "cards": [1, 2, 3, 4, 5, 7, 8, 10, 11, 12, 13, 14],
+      "count": 12
+    },
+    {
+      "name": "Cross",
+      "cards": [1, 2, 3, 5, 7, 10, 11, 13, 14],
+      "count": 9
+    },
+    {
+      "name": "Triangle",
+      "cards": [1, 2, 3, 4, 5, 7, 10, 11, 12, 13, 14],
+      "count": 11
+    },
+    {
+      "name": "Star",
+      "cards": [1, 2, 3, 4, 5, 7, 8],
+      "count": 7
+    },
+    {
+      "name": "Square",
+      "cards": [1, 2, 3, 5, 7, 10, 11, 13, 14],
+      "count": 9
+    }
+  ],
+  "whotCards": {
+    "value": 20,
+    "count": 6,
+    "description": "Wild card – can be played on any shape and allows the player to choose a new shape"
+  },
+  "specialNumbers": {
+    "1": {
+      "name": "Hold On",
+      "effect": "Next player misses a turn"
+    },
+    "2": {
+      "name": "Pick Two",
+      "effect": "Next player draws 2 cards"
+    },
+    "5": {
+      "name": "Pick Three",
+      "effect": "Next player draws 3 cards (house rule)"
+    },
+    "8": {
+      "name": "Suspension",
+      "effect": "Skip next player (house rule)"
+    },
+    "14": {
+      "name": "General Market",
+      "effect": "All players draw 1 card"
+    },
+    "20": {
+      "name": "Whot",
+      "effect": "Change the current shape"
+    }
+  },
+  "summary": {
+    "Circle": 12,
+    "Cross": 9,
+    "Triangle": 11,
+    "Star": 7,
+    "Square": 9,
+    "Whot": 6
+  }
+}
