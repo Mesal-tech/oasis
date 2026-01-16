@@ -12,22 +12,20 @@ export class WhotDeck {
   private initialize() {
     this.cards = [];
     this.discardPile = [];
+    let uid = 0;
 
     // 1. Generate standard shapes from cards.json
     cardsConfig.shapes.forEach(shapeConfig => {
       const shape = shapeConfig.name as WhotShape;
       shapeConfig.cards.forEach(num => {
-        this.cards.push(new WhotCard(shape, num));
+        this.cards.push(new WhotCard(shape, num, uid++));
       });
     });
 
     // 2. Generate Whot cards (20s)
-    // Whot cards in cards.json are just "whotCards" with a count
-    // They are usually considered as having no specific shape or a wildcard shape
-    // But for matching logic, we can treat them as "Whot" shape
     for (let i = 0; i < cardsConfig.whotCards.count; i++) {
         // Use 'Whot' as the shape for the 20 cards
-        this.cards.push(new WhotCard('Whot', 20));
+        this.cards.push(new WhotCard('Whot', 20, uid++));
     }
 
     this.shuffle();

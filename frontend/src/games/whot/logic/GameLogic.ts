@@ -12,26 +12,32 @@ export class WhotGameLogic {
   private turnDirection: number = 1;
   private nextTurnAction: 'normal' | 'skip' | 'repeat' = 'normal';
 
-  constructor(playerNames: string[]) {
+  constructor(playerNames: string[], autoDeal: boolean = true) {
     this.deck = new WhotDeck();
     this.players = playerNames.map((name, i) => new WhotPlayer(name, i > 0)); 
-    this.dealInitialCards();
+    if (autoDeal) {
+      this.dealInitialCards();
+    }
   }
 
-  private dealInitialCards() {
-    // Deal 4 cards to each player as per constants.js
+  public dealInitialCards() {
+    // Deal 5 cards to each player
     this.players.forEach(player => {
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < 5; i++) {
         const card = this.deck.draw();
         if (card) player.addCard(card);
       }
     });
 
+    this.flipFirstCard();
+  }
+
+  public flipFirstCard() {
     // Initial discard
     let firstCard = this.deck.draw();
     // Cannot start with a special card
     while (firstCard && firstCard.isSpecial()) {
-      this.deck.discard(firstCard); // This is a bit lazy, should probably put back and reshuffle
+      this.deck.discard(firstCard); 
       firstCard = this.deck.draw();
     }
     if (firstCard) {
@@ -92,8 +98,7 @@ export class WhotGameLogic {
         case 14: // General Market
           this.players.forEach(p => {
             if (p !== this.getCurrentPlayer()) {
-              const c = this.deck.draw();
-              if (c) p.addCard(c);
+              p.cardsToDraw += 1;
             }
           });
           break;
@@ -104,21 +109,17 @@ export class WhotGameLogic {
   private drawForNextPlayer(count: number) {
     const nextIndex = (this.currentPlayerIndex + this.turnDirection + this.players.length) % this.players.length;
     const nextPlayer = this.players[nextIndex];
-    for (let i = 0; i < count; i++) {
-      const c = this.deck.draw();
-      if (c) nextPlayer.addCard(c);
-    }
+    nextPlayer.cardsToDraw += count;
   }
 
-  public drawCard(): WhotCard | null {
+  public drawCard(skipAdvance: boolean = false): WhotCard | null {
     const player = this.getCurrentPlayer();
     const card = this.deck.draw();
     if (card) {
       player.addCard(card);
-      // After drawing, if you can't play, turn passes (usually)
-      // Some house rules allow playing if drawn card matches
-      // We'll pass the turn for now to keep it simple unless logic dictates otherwise
-      this.advanceTurn();
+      if (!skipAdvance) {
+        this.advanceTurn();
+      }
       return card;
     }
     return null;

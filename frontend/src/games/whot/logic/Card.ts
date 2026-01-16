@@ -10,10 +10,10 @@ export class WhotCard {
   public readonly shape: WhotShape;
   public readonly number: number;
 
-  constructor(shape: WhotShape, number: number) {
+  constructor(shape: WhotShape, number: number, uniqueId: number) {
     this.shape = shape;
     this.number = number;
-    this.id = `${shape}_${number}`;
+    this.id = `${shape}_${number}_${uniqueId}`;
   }
 
   isWhot(): boolean {

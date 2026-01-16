@@ -259,6 +259,10 @@ export const GameScreen = () => {
   const [showModeModal, setShowModeModal] = useState(false);
   const [showMatchmakingModal, setShowMatchmakingModal] = useState(false);
 
+  // React-based games (Whot, Checkers)
+  const [ActiveReactGame, setActiveReactGame] = useState(null);
+  const [reactGameProps, setReactGameProps] = useState({});
+
   // Game tracking
   const [savingMatch, setSavingMatch] = useState(false);
 
@@ -302,9 +306,11 @@ export const GameScreen = () => {
         gameInstanceRef.current = null;
       }
       if (reactRootRef.current) {
+        // We don't use this for Whot/Checkers anymore, but keep for safety/legacy
         reactRootRef.current.unmount();
         reactRootRef.current = null;
       }
+      setActiveReactGame(null);
     };
   }, []);
 
@@ -483,82 +489,54 @@ export const GameScreen = () => {
           // Checkers Integration
           await import('../../games/checkers/index.css'); // Ensure styles are loaded
           const mod = await import('../../games/checkers/ui/App');
-          const CheckersApp = mod.App;
-
-          const d = document.createElement('div');
-          d.id = 'checkers-root';
-          d.style.width = '100%';
-          d.style.height = '100%';
-          container.appendChild(d);
-
-          const root = createRoot(d);
-          const options = {
-            gameMode: mode, // 'ai' or 'multiplayer'
-            playerId: player?.id,
-            username: nickname || player?.username,
-            joinType: matchmakingOptions.joinType || 'quickmatch',
-            roomCode: matchmakingOptions.roomCode || null
-          };
-          root.render(<CheckersApp gameOptions={options} />);
-          reactRootRef.current = root;
+          
+          setActiveReactGame(() => mod.App);
+          setReactGameProps({
+            gameOptions: {
+              gameMode: mode, // 'ai' or 'multiplayer'
+              playerId: player?.id,
+              username: nickname || player?.username,
+              joinType: matchmakingOptions.joinType || 'quickmatch',
+              roomCode: matchmakingOptions.roomCode || null
+            }
+          });
 
           // Listen for game over event from checkers
           const handleCheckersGameOver = async (event) => {
             const { score, isWinner } = event.detail;
-            console.log('Checkers game over:', { score, isWinner });
-
-            // Save match to backend
             await saveMatchResult(score, isWinner, { gameType: 'checkers' });
           };
 
           const handleCheckersBackToLobby = () => {
             setGameState('lobby');
-            if (reactRootRef.current) {
-              reactRootRef.current.unmount();
-              reactRootRef.current = null;
-            }
+            setActiveReactGame(null);
           };
 
           window.addEventListener('checkersGameOver', handleCheckersGameOver);
           window.addEventListener('checkersBackToLobby', handleCheckersBackToLobby);
 
-          // Store cleanup function
           gameInstanceRef.current = {
             cleanup: () => {
               window.removeEventListener('checkersGameOver', handleCheckersGameOver);
               window.removeEventListener('checkersBackToLobby', handleCheckersBackToLobby);
+              setActiveReactGame(null);
             }
           };
 
         } else if (gameData.id === 'whot') {
           // Whot Integration (New React Version)
           const mod = await import('../../games/whot/ui/App');
-          const WhotApp = mod.WhotApp;
+          setActiveReactGame(() => mod.WhotApp);
+          setReactGameProps({
+            gameOptions: {
+              playerName: nickname || 'You',
+              difficulty: 'medium'
+            }
+          });
 
-          const d = document.createElement('div');
-          d.id = 'whot-root';
-          d.style.width = '100%';
-          d.style.height = '100%';
-          container.appendChild(d);
-
-          const root = createRoot(d);
-          root.render(
-            <WhotApp 
-              gameOptions={{
-                playerName: nickname || 'You',
-                difficulty: 'medium'
-              }} 
-            />
-          );
-          reactRootRef.current = root;
-
-          // Store cleanup function
           gameInstanceRef.current = {
             cleanup: () => {
-              if (reactRootRef.current) {
-                reactRootRef.current.unmount();
-                reactRootRef.current = null;
-              }
+              setActiveReactGame(null);
             }
           };
 
@@ -640,7 +618,9 @@ export const GameScreen = () => {
       <div
         id="phaser-game-container"
         className={`flex-1 w-full h-full relative ${gameState === 'playing' ? 'block' : 'hidden'}`}
-      ></div>
+      >
+        {ActiveReactGame && <ActiveReactGame {...reactGameProps} />}
+      </div>
 
       {/* GAME OVER */}
       {gameState === 'gameover' && (

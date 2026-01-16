@@ -2,6 +2,7 @@ import { WhotCard, type WhotShape } from './Card';
 
 export class WhotPlayer {
   public hand: WhotCard[] = [];
+  public cardsToDraw: number = 0;
   public readonly name: string;
   public readonly isAI: boolean;
 
