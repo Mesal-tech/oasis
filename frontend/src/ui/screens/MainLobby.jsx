@@ -43,6 +43,15 @@ export const MainLobby = () => {
     },
     {
       id: 4,
+      title: "Whot!",
+      subtitle: "Card Game",
+      image: "/assets/whot-thumb.png",
+      tag: "Card",
+      pool: "Play PvP or AI",
+      gameId: "whot"
+    },
+    {
+      id: 5,
       title: "More Games Coming Soon",
       subtitle: "Stay Tuned for Updates",
       image: "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?q=80&w=2665&auto=format&fit=crop",
@@ -71,7 +80,7 @@ export const MainLobby = () => {
             { id: 'slither', title: 'Slither.io', category: 'Action', activePlayers: 1240, thumbnail: '/assets/slither-thumb.jpg' },
             { id: 'flappy', title: 'Flappy Bird', category: 'Arcade', activePlayers: 850, thumbnail: '/assets/flappy-thumb.jpg' },
             { id: 'checkers', title: 'Checkers', category: 'Board', activePlayers: 100, thumbnail: '/assets/checkers-thumb.jpg' },
-            { id: 'whot', title: 'Naija Whot', category: 'Strategy', activePlayers: 540, thumbnail: '/assets/whot-thumb.jpg' },
+            { id: 'whot', title: 'Naija Whot', category: 'Strategy', activePlayers: 540, thumbnail: '/assets/whot-thumb.png' },
           ]);
         }
       } catch (error) {

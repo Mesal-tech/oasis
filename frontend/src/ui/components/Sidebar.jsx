@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Trophy, ShoppingBag, Gift, LogOut, Wallet, Sparkles, Swords, Gamepad2 } from 'lucide-react';
+import { Home, Trophy, Gamepad2, MoreHorizontal, User, HelpCircle, Gift, Info, CreditCard, Wallet, ChevronRight } from 'lucide-react';
+import gsap from 'gsap';
 import { usePlayer } from '../../state/PlayerContext';
 import { LoginButton } from '../../components/LoginButton';
 import { UserProfileModal } from './UserProfileModal';
@@ -9,16 +10,233 @@ const NAV_ITEMS = [
   { label: 'Dashboard', icon: Home, href: '/' },
   { label: 'Games', icon: Gamepad2, href: '/games' },
   { label: 'Leaderboard', icon: Trophy, href: '/leaderboard' },
-  { label: 'Arena', icon: Swords, href: '/arena' },
-  { label: 'Marketplace', icon: ShoppingBag, href: '/marketplace' },
-  { label: 'Rewards', icon: Gift, href: '/rewards' },
 ];
 
 export const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { player } = usePlayer(); // Use PlayerContext instead of userStore
+  const { player } = usePlayer();
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  
+  // Ref for closing clicking outside
+  const moreMenuRef = useRef(null);
+  const moreButtonRef = useRef(null);
+  const desktopMenuRef = useRef(null);
+  const mobileMenuRef = useRef(null);
+  
+  // Refs for sliding indicator
+  const desktopNavRefs = useRef([]);
+  const mobileNavRefs = useRef([]);
+  const desktopIndicatorRef = useRef(null);
+  const mobileIndicatorRef = useRef(null);
+
+  // Update indicator position when route changes
+  useLayoutEffect(() => {
+    const activeIndex = NAV_ITEMS.findIndex(item => 
+      location.pathname === item.href || (item.href !== '/' && location.pathname.startsWith(item.href))
+    );
+
+    // Check if we're on a "More" sub-route
+    const isOnMoreRoute = location.pathname.startsWith('/profile') || 
+                          location.pathname === '/support' || 
+                          location.pathname === '/rewards';
+
+    if (activeIndex !== -1 && !isOnMoreRoute) {
+      // Desktop indicator animation
+      if (desktopNavRefs.current[activeIndex] && desktopIndicatorRef.current) {
+        const activeElement = desktopNavRefs.current[activeIndex];
+        const { offsetTop, offsetHeight } = activeElement;
+        
+        gsap.to(desktopIndicatorRef.current, {
+          top: offsetTop,
+          height: offsetHeight,
+          opacity: 1,
+          duration: 0.3,
+          ease: 'power2.out'
+        });
+      }
+
+      // Mobile indicator animation
+      if (mobileNavRefs.current[activeIndex] && mobileIndicatorRef.current) {
+        const activeElement = mobileNavRefs.current[activeIndex];
+        const { offsetLeft, offsetWidth } = activeElement;
+        
+        gsap.to(mobileIndicatorRef.current, {
+          left: offsetLeft,
+          width: offsetWidth,
+          opacity: 1,
+          duration: 0.3,
+          ease: 'power2.out'
+        });
+      }
+    } else if (isOnMoreRoute) {
+      // Hide indicators when on More sub-routes
+      if (desktopIndicatorRef.current) {
+        gsap.to(desktopIndicatorRef.current, { opacity: 0, duration: 0.2 });
+      }
+      if (mobileIndicatorRef.current) {
+        gsap.to(mobileIndicatorRef.current, { opacity: 0, duration: 0.2 });
+      }
+    }
+  }, [location.pathname]);
+
+  // Animate menu appearance
+  useLayoutEffect(() => {
+    if (showMoreMenu) {
+      // Desktop menu animation (fade + slide down)
+      if (desktopMenuRef.current) {
+        gsap.fromTo(
+          desktopMenuRef.current,
+          { opacity: 0, y: -10 },
+          { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' }
+        );
+      }
+      
+      // Mobile menu animation (slide up from bottom)
+      if (mobileMenuRef.current) {
+        gsap.fromTo(
+          mobileMenuRef.current,
+          { opacity: 0, y: 20 },
+          { opacity: 1, y: 0, duration: 0.4, ease: 'power3.out' }
+        );
+      }
+    }
+  }, [showMoreMenu]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+        // If clicking on the button, don't close immediately (handled by button click)
+        if (moreButtonRef.current && moreButtonRef.current.contains(event.target)) {
+            return;
+        }
+        
+        // Check if click is inside either menu
+        const clickedInsideDesktop = desktopMenuRef.current && desktopMenuRef.current.contains(event.target);
+        const clickedInsideMobile = mobileMenuRef.current && mobileMenuRef.current.contains(event.target);
+        
+        // Only close if clicked outside BOTH menus (i.e., not inside either)
+        if (!clickedInsideDesktop && !clickedInsideMobile) {
+            setShowMoreMenu(false);
+        }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+
+  const handleNavigation = (path) => {
+    navigate(path);
+    setShowMoreMenu(false);
+  };
+
+  const handleAnimatedNavigation = (path, element) => {
+    // Animate the clicked element
+    if (element) {
+      gsap.to(element, {
+        scale: 0.95,
+        duration: 0.1,
+        yoyo: true,
+        repeat: 1,
+        ease: 'power2.inOut'
+      });
+    }
+    
+    // Navigate after a brief delay
+    setTimeout(() => {
+      navigate(path);
+    }, 100);
+  };
+
+  const MoreMenuContent = () => {
+    const menuItemsRef = useRef([]);
+    
+    useLayoutEffect(() => {
+      if (menuItemsRef.current.length > 0) {
+        gsap.fromTo(
+          menuItemsRef.current,
+          { opacity: 0, x: -10 },
+          { 
+            opacity: 1, 
+            x: 0, 
+            duration: 0.3,
+            stagger: 0.05,
+            ease: 'power2.out'
+          }
+        );
+      }
+    }, []);
+
+    return (
+      <div className="flex flex-col p-2 space-y-1">
+          {/* Profile Section */}
+          <div className="px-3 py-2 text-xs font-bold text-[#52525B] uppercase tracking-wider">Profile</div>
+          
+          <button 
+            ref={el => menuItemsRef.current[0] = el}
+            onClick={() => handleNavigation('/profile/information')} 
+            className="flex items-center gap-3 px-3 py-2 text-sm text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded-lg transition-colors w-full text-left relative"
+          >
+              <Info size={16} />
+              <span className={location.pathname === '/profile/information' ? 'text-white' : ''}>Information</span>
+              {location.pathname === '/profile/information' && (
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#FF5D2E]"></div>
+              )}
+          </button>
+          <button 
+            ref={el => menuItemsRef.current[1] = el}
+            onClick={() => handleNavigation('/profile/deposit')} 
+            className="flex items-center gap-3 px-3 py-2 text-sm text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded-lg transition-colors w-full text-left relative"
+          >
+              <CreditCard size={16} />
+              <span className={location.pathname === '/profile/deposit' ? 'text-white' : ''}>Deposit / Withdraw</span>
+              {location.pathname === '/profile/deposit' && (
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#FF5D2E]"></div>
+              )}
+          </button>
+          <button 
+            ref={el => menuItemsRef.current[2] = el}
+            onClick={() => handleNavigation('/profile/wallet')} 
+            className="flex items-center gap-3 px-3 py-2 text-sm text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded-lg transition-colors w-full text-left relative"
+          >
+              <Wallet size={16} />
+              <span className={location.pathname === '/profile/wallet' ? 'text-white' : ''}>Wallet</span>
+              {location.pathname === '/profile/wallet' && (
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#FF5D2E]"></div>
+              )}
+          </button>
+
+          <div className="h-px bg-[#27272A] my-1 mx-2"></div>
+
+          {/* Other Links */}
+          <button 
+            ref={el => menuItemsRef.current[3] = el}
+            onClick={() => handleNavigation('/rewards')} 
+            className="flex items-center gap-3 px-3 py-2 text-sm text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded-lg transition-colors w-full text-left relative"
+          >
+              <Gift size={16} />
+              <span className={location.pathname === '/rewards' ? 'text-white' : ''}>Awards</span>
+              {location.pathname === '/rewards' && (
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#FF5D2E]"></div>
+              )}
+          </button>
+          <button 
+            ref={el => menuItemsRef.current[4] = el}
+            onClick={() => handleNavigation('/support')} 
+            className="flex items-center gap-3 px-3 py-2 text-sm text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded-lg transition-colors w-full text-left relative"
+          >
+              <HelpCircle size={16} />
+              <span className={location.pathname === '/support' ? 'text-white' : ''}>Support</span>
+              {location.pathname === '/support' && (
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#FF5D2E]"></div>
+              )}
+          </button>
+      </div>
+    );
+  };
 
   return (
     <>
@@ -69,19 +287,27 @@ export const Sidebar = () => {
           </div>
 
           {/* Navigation Menu */}
-          <nav className="flex-1 space-y-2 mb-8">
-            {NAV_ITEMS.map((item) => {
+          <nav className="flex-1 space-y-2 mb-8 relative">
+            {/* Animated Indicator */}
+            <div 
+              ref={desktopIndicatorRef}
+              className="absolute left-0 w-full h-12 bg-gradient-to-r from-[#FF5D2E]/10 to-[#FF8C5D]/10 rounded-xl pointer-events-none transition-opacity"
+              style={{ top: 0 }}
+            />
+            
+            {NAV_ITEMS.map((item, index) => {
               const isActive = location.pathname === item.href || (item.href !== '/' && location.pathname.startsWith(item.href));
               const Icon = item.icon;
 
               return (
                 <div
                   key={item.href}
-                  onClick={() => navigate(item.href)}
+                  ref={el => desktopNavRefs.current[index] = el}
+                  onClick={(e) => handleAnimatedNavigation(item.href, e.currentTarget)}
                   className={`
-                        group flex items-center gap-3 px-4 py-3 rounded-xl transition-all cursor-pointer font-bold text-sm
+                        group flex items-center gap-3 px-4 py-3 rounded-xl transition-all cursor-pointer font-bold text-sm relative z-10
                         ${isActive
-                      ? 'bg-white/5 text-[#FFFFFF]'
+                      ? 'text-[#FFFFFF]'
                       : 'text-[#71717A] hover:text-white hover:bg-[#18181B]'
                     }
                       `}
@@ -91,6 +317,41 @@ export const Sidebar = () => {
                 </div>
               );
             })}
+
+             {/* Desktop 'More' Button */}
+             <div className="relative">
+                {/* Check if we're on any "More" sub-route */}
+                {(() => {
+                  const isMoreActive = location.pathname.startsWith('/profile') || 
+                                       location.pathname === '/support' || 
+                                       location.pathname === '/rewards';
+                  
+                  return (
+                    <div
+                        ref={moreButtonRef}
+                        onClick={() => setShowMoreMenu(!showMoreMenu)}
+                        className={`
+                                group flex items-center gap-3 px-4 py-3 rounded-xl transition-all cursor-pointer font-bold text-sm relative z-10
+                                ${showMoreMenu || isMoreActive
+                            ? 'text-[#FFFFFF]'
+                            : 'text-[#71717A] hover:text-white hover:bg-[#18181B]'
+                            }
+                            `}
+                    >
+                        <MoreHorizontal size={20} className={(showMoreMenu || isMoreActive) ? 'text-[#FFFFFF]' : 'text-[#71717A] group-hover:text-white transition-colors'} />
+                        <span>More</span>
+                    </div>
+                  );
+                })()}
+
+                {/* Desktop Popover */}
+                 {showMoreMenu && (
+                    <div ref={desktopMenuRef} className="absolute left-0 top-full mt-2 w-64 bg-[#18181B] border border-[#27272A] rounded-xl shadow-xl z-50 overflow-hidden">
+                       <MoreMenuContent />
+                    </div>
+                )}
+             </div>
+
           </nav>
 
           {/* Bottom Section */}
@@ -104,25 +365,59 @@ export const Sidebar = () => {
         </aside>
 
         {/* Mobile Floating Bottom Bar */}
-        <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-sm">
-          <div className="flex items-center justify-around px-2 py-2 bg-[#18181B]/90 backdrop-blur-xl border border-[#27272A] rounded-2xl shadow-2xl">
-            {NAV_ITEMS.map((item) => {
+        <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[70%] max-w-sm">
+          <div className="flex items-center justify-around px-2 py-2 bg-[#18181B]/90 backdrop-blur-xl border border-[#27272A] rounded-4xl shadow-2xl relative">
+            {/* Animated Indicator */}
+            <div 
+              ref={mobileIndicatorRef}
+              className="absolute top-2 h-12 bg-[#FF5D2E] rounded-2xl pointer-events-none shadow-lg shadow-[#FF5D2E]/20 transition-opacity"
+              style={{ left: 0, width: 48 }}
+            />
+            
+            {NAV_ITEMS.map((item, index) => {
               const isActive = location.pathname === item.href;
               const Icon = item.icon;
 
               return (
                 <button
                   key={item.href}
-                  onClick={() => navigate(item.href)}
+                  ref={el => mobileNavRefs.current[index] = el}
+                  onClick={(e) => handleAnimatedNavigation(item.href, e.currentTarget)}
                   className={`
-                      relative flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-300
-                      ${isActive ? 'bg-[#FF5D2E] text-black shadow-lg shadow-[#FF5D2E]/20' : 'text-[#71717A] hover:text-white hover:bg-white/5'}
+                      relative z-10 flex items-center justify-center w-12 h-12 rounded-2xl transition-all duration-300
+                      ${isActive ? 'text-black' : 'text-[#71717A] hover:text-white hover:bg-white/5'}
                     `}
                 >
                   <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
                 </button>
               );
             })}
+             {/* Mobile 'More' Button */}
+             {(() => {
+               const isMoreActive = location.pathname.startsWith('/profile') || 
+                                    location.pathname === '/support' || 
+                                    location.pathname === '/rewards';
+               
+               return (
+                 <button
+                    ref={moreButtonRef}
+                    onClick={() => setShowMoreMenu(!showMoreMenu)}
+                    className={`
+                        relative z-10 flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-300
+                        ${(showMoreMenu || isMoreActive) ? 'bg-[#FF5D2E] text-black shadow-lg shadow-[#FF5D2E]/20' : 'text-[#71717A] hover:text-white hover:bg-white/5'}
+                    `}
+                 >
+                    <MoreHorizontal size={20} strokeWidth={(showMoreMenu || isMoreActive) ? 2.5 : 2} />
+                 </button>
+               );
+             })()}
+            
+            {/* Mobile Bottom Sheet/Popup */}
+             {showMoreMenu && (
+                <div ref={mobileMenuRef} className="absolute bottom-full left-0 w-full mb-4 bg-[#18181B] border border-[#27272A] rounded-2xl shadow-2xl z-50 overflow-hidden">
+                    <MoreMenuContent />
+                </div>
+            )}
           </div>
         </nav>
       </div>

@@ -8,6 +8,10 @@ import { MarketplaceScreen } from './ui/screens/Marketplace';
 import { RewardsScreen } from './ui/screens/Rewards';
 import { ArenaScreen } from './ui/screens/ArenaScreen';
 import { GameScreen } from './ui/screens/GameScreen';
+import { SupportScreen } from './ui/screens/Support';
+import { ProfileInformationScreen } from './ui/screens/profile/Information';
+import { DepositWithdrawScreen } from './ui/screens/profile/DepositWithdraw';
+import { WalletScreen } from './ui/screens/profile/Wallet';
 import { LoginButton } from './components/LoginButton';
 import { PlayerProvider } from './state/PlayerContext';
 
@@ -17,7 +21,7 @@ function App() {
       <PlayerProvider>
         <div className="flex h-screen w-full bg-black text-white">
           <Sidebar />
-          <div className="flex-1 overflow-y-scroll w-full relative">
+          <div className="flex-1 overflow-y-scroll w-full relative pb-24 md:pb-0">
             <Routes>
               <Route path="/" element={<MainLobby />} />
               <Route path="/games" element={<GamesScreen />} />
@@ -26,6 +30,10 @@ function App() {
               <Route path="/rewards" element={<RewardsScreen />} />
               <Route path="/arena" element={<ArenaScreen />} />
               <Route path="/game/:gameId" element={<GameScreen />} />
+              <Route path="/support" element={<SupportScreen />} />
+              <Route path="/profile/information" element={<ProfileInformationScreen />} />
+              <Route path="/profile/deposit" element={<DepositWithdrawScreen />} />
+              <Route path="/profile/wallet" element={<WalletScreen />} />
             </Routes>
           </div>
         </div>

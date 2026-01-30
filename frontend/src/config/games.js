@@ -48,7 +48,7 @@ const GAMES = [
     category: 'cards',
     players: 0,
     earnRate: '1.5x',
-    thumbnail: '/assets/whot-thumb.jpg'
+    thumbnail: '/assets/whot-thumb.png'
   },
 ];
 
