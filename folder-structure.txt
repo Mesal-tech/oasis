@@ -31,7 +31,7 @@ frontend/
 │   └── manifest.json
 │
 └── src/
-    ├── main.js                    # App entry point
+    ├── main.js                    # App entry point.
     ├── router.js                  # Route handler (lobby/game switching)
     ├── styles/
     │   ├── main.css
