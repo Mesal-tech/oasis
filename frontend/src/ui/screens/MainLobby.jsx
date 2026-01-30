@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Users, Trophy, Star, TrendingUp, Search, Filter, ChevronRight, ChevronLeft, ArrowUpRight } from 'lucide-react';
+import { Play, Users, Trophy, Star, TrendingUp, ChevronRight, ChevronLeft, ArrowUpRight } from 'lucide-react';
 import { usePlayer } from '../../state/PlayerContext';
 import apiClient from '../../api/client';
 import { useNavigate } from 'react-router-dom';
+import { Header } from '../components/Header';
 
 // Main Landing Page Component
 export const MainLobby = () => {
@@ -111,33 +112,10 @@ export const MainLobby = () => {
     : games.filter(g => g.category === activeCategory);
 
   return (
-    <div className="min-h-screen bg-[#09090B] text-white font-sans overflow-x-hidden px-4 md:px-6 pb-6 w-full">
+    <div className="min-h-screen bg-[#09090B] text-white font-sans overflow-x-hidden px-4 md:px-6 pb-6 w-full pt-20 md:pt-6">
 
-      {/* Top Navigation / Search Bar */}
-      {/* Top Navigation / Search Bar */}
-      <div className="sticky top-0 z-40 bg-[#09090B]/80 backdrop-blur-xl border-b border-[#27272A] -mx-4 md:-mx-6 px-4 md:px-8 py-4 flex flex-col md:flex-row items-stretch md:items-center justify-between mb-8 gap-4 md:gap-0">
-        <div className="relative flex-1 max-w-2xl">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#71717A]" size={18} />
-          <input
-            type="text"
-            placeholder="Search games..."
-            className="w-full bg-[#121215] border border-[#27272A] rounded-full pl-12 pr-4 py-3 focus:outline-none focus:border-[#FF5D2E]/50 text-sm placeholder-[#52525B] transition-all"
-          />
-          <div className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 items-center gap-1.5 text-[#52525B] text-[10px] font-mono border border-[#27272A] px-1.5 py-0.5 rounded">
-            <span>CTRL</span><span>K</span>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between md:justify-end gap-4 md:pl-8">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-[#121215] border border-[#27272A] rounded-lg w-full md:w-auto justify-center">
-            <div className="w-2 h-2 bg-[#10B981] rounded-full animate-pulse"></div>
-            <span className="text-xs font-bold text-[#A1A1AA]">24,892 Online</span>
-          </div>
-          <button className="p-2 text-[#A1A1AA] hover:text-white bg-[#121215] border border-[#27272A] rounded-xl hover:bg-[#27272A] transition-all">
-            <Filter size={20} />
-          </button>
-        </div>
-      </div>
+      {/* Header */}
+      <Header />
 
       <div className="max-w-[1600px] mx-auto space-y-12">
 
