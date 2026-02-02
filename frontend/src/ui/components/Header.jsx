@@ -15,9 +15,11 @@ export const Header = () => {
 
           {/* Logo/Brand - Centered */}
           <div className="flex items-center absolute left-1/2 -translate-x-1/2">
-            <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
-              OASIS
-            </h1>
+            <img 
+              src="/assets/images/logo.png" 
+              alt="OASIS" 
+              className="h-24 w-auto object-contain"
+            />
           </div>
 
           {/* Profile Circle */}
