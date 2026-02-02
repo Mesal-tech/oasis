@@ -13,7 +13,7 @@ export const Header = () => {
   return (
     <>
       {/* Sticky Header Container */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 px-4 py-3 bg-black/80 backdrop-blur-md border-b border-white/5">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 px-4 py-4 bg-black/80 backdrop-blur-md border-b border-white/5">
         <div className="flex items-center justify-between">
           
           {/* Logo (Centered Absolute) */}
@@ -21,7 +21,7 @@ export const Header = () => {
             <img 
               src="/assets/images/logo.png" 
               alt="OASIS" 
-              className="h-24 object-contain brightness-125 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] animate-pulse"
+              className="h-22 object-contain brightness-125 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] animate-pulse"
             />
           </div>
 
