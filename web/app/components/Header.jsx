@@ -13,7 +13,7 @@ export const Header = () => {
   return (
     <>
       {/* Sticky Header Container */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 px-4 py-4 bg-black/80 backdrop-blur-md border-b border-white/5">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 px-4 py-5 bg-black/80 backdrop-blur-md border-b border-white/5">
         <div className="flex items-center justify-between">
           
           {/* Logo (Centered Absolute) */}
