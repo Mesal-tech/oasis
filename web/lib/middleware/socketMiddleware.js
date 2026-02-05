@@ -3,89 +3,85 @@ import { updateGamePlayers } from '../slices/gamesSlice';
 import { updatePlayerRank } from '../slices/leaderboardSlice';
 import { updateArenaPlayers, addPlayerToArena, removePlayerFromArena } from '../slices/arenasSlice';
 
-let socket = null;
-
+// Socket.IO middleware for real-time updates
 const socketMiddleware = (store) => {
+  let socket = null;
+
+  // Only connect to Socket.IO if backend URL is configured and not in serverless environment
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL;
+  const isServerless = process.env.VERCEL === '1' || !backendUrl || backendUrl.includes('vercel.app');
+  
+  if (isServerless) {
+    console.log('[Socket.IO] Skipping connection - running in serverless environment');
+    return (next) => (action) => next(action);
+  }
+
   return (next) => (action) => {
-    // Initialize socket connection on first action
+    // Initialize socket connection on store creation
     if (!socket && typeof window !== 'undefined') {
-      const socketUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      socket = io(socketUrl, {
-        transports: ['websocket', 'polling'],
-        reconnection: true,
-        reconnectionDelay: 1000,
-        reconnectionAttempts: 5,
-      });
+      try {
+        console.log(`[Socket.IO] Connecting to: ${backendUrl}`);
+        
+        socket = io(backendUrl, {
+          transports: ['websocket', 'polling'],
+          reconnection: true,
+          reconnectionDelay: 1000,
+          reconnectionAttempts: 5,
+        });
 
-      console.log('[Socket.IO] Connecting to:', socketUrl);
+        socket.on('connect', () => {
+          console.log('[Socket.IO] Connected:', socket.id);
+        });
 
-      // Connection events
-      socket.on('connect', () => {
-        console.log('[Socket.IO] Connected:', socket.id);
-      });
+        socket.on('disconnect', () => {
+          console.log('[Socket.IO] Disconnected');
+        });
 
-      socket.on('disconnect', (reason) => {
-        console.log('[Socket.IO] Disconnected:', reason);
-      });
+        socket.on('connect_error', (error) => {
+          console.warn('[Socket.IO] Connection error:', error.message);
+        });
 
-      socket.on('connect_error', (error) => {
-        console.error('[Socket.IO] Connection error:', error);
-      });
+        // Listen for game player count updates
+        socket.on('game:playerCountUpdate', (data) => {
+          console.log('[Socket.IO] Game player count update:', data);
+          store.dispatch(updateGamePlayers(data));
+        });
 
-      // Real-time event listeners
-      
-      // Game player count updates
-      socket.on('game:playerCountUpdate', (data) => {
-        console.log('[Socket.IO] Game player count update:', data);
-        store.dispatch(updateGamePlayers({
-          gameId: data.gameId,
-          playerCount: data.playerCount,
-        }));
-      });
+        // Listen for leaderboard updates
+        socket.on('leaderboard:update', (data) => {
+          console.log('[Socket.IO] Leaderboard update:', data);
+          store.dispatch(updatePlayerRank(data));
+        });
 
-      // Leaderboard updates
-      socket.on('leaderboard:update', (data) => {
-        console.log('[Socket.IO] Leaderboard update:', data);
-        store.dispatch(updatePlayerRank({
-          playerId: data.playerId,
-          newRank: data.rank,
-          gameId: data.gameId || null,
-        }));
-      });
+        // Listen for arena updates
+        socket.on('arena:playerJoined', (data) => {
+          console.log('[Socket.IO] Player joined arena:', data);
+          store.dispatch(addPlayerToArena(data));
+        });
 
-      // Arena player joined
-      socket.on('arena:playerJoined', (data) => {
-        console.log('[Socket.IO] Player joined arena:', data);
-        store.dispatch(addPlayerToArena({
-          arenaId: data.arenaId,
-          player: data.player,
-        }));
-      });
+        socket.on('arena:playerLeft', (data) => {
+          console.log('[Socket.IO] Player left arena:', data);
+          store.dispatch(removePlayerFromArena(data));
+        });
 
-      // Arena player left
-      socket.on('arena:playerLeft', (data) => {
-        console.log('[Socket.IO] Player left arena:', data);
-        store.dispatch(removePlayerFromArena({
-          arenaId: data.arenaId,
-          playerId: data.playerId,
-        }));
-      });
+        socket.on('arena:playerCountUpdate', (data) => {
+          console.log('[Socket.IO] Arena player count update:', data);
+          store.dispatch(updateArenaPlayers(data));
+        });
 
-      // Arena player count update
-      socket.on('arena:playerCountUpdate', (data) => {
-        console.log('[Socket.IO] Arena player count update:', data);
-        store.dispatch(updateArenaPlayers({
-          arenaId: data.arenaId,
-          playerCount: data.playerCount,
-        }));
-      });
+      } catch (error) {
+        console.error('[Socket.IO] Failed to initialize:', error);
+      }
+    }
+
+    // Handle socket disconnect on cleanup
+    if (action.type === 'socket/disconnect' && socket) {
+      socket.disconnect();
+      socket = null;
     }
 
     return next(action);
   };
 };
-
-// Export socket instance for manual emit if needed
-export const getSocket = () => socket;
 
 export default socketMiddleware;
