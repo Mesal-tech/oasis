@@ -29,30 +29,6 @@ const arenasSlice = createSlice({
     setActiveArena: (state, action) => {
       state.activeArena = action.payload;
     },
-    updateArenaPlayers: (state, action) => {
-      const { arenaId, playerCount } = action.payload;
-      const arena = state.arenas.find(a => a.id === arenaId);
-      if (arena) {
-        arena.currentPlayers = playerCount;
-      }
-    },
-    addPlayerToArena: (state, action) => {
-      const { arenaId, player } = action.payload;
-      const arena = state.arenas.find(a => a.id === arenaId);
-      if (arena) {
-        if (!arena.players) arena.players = [];
-        arena.players.push(player);
-        arena.currentPlayers = arena.players.length;
-      }
-    },
-    removePlayerFromArena: (state, action) => {
-      const { arenaId, playerId } = action.payload;
-      const arena = state.arenas.find(a => a.id === arenaId);
-      if (arena && arena.players) {
-        arena.players = arena.players.filter(p => p.id !== playerId);
-        arena.currentPlayers = arena.players.length;
-      }
-    },
     clearError: (state) => {
       state.error = null;
     },
@@ -74,12 +50,6 @@ const arenasSlice = createSlice({
   },
 });
 
-export const { 
-  setActiveArena, 
-  updateArenaPlayers, 
-  addPlayerToArena, 
-  removePlayerFromArena,
-  clearError 
-} = arenasSlice.actions;
+export const { setActiveArena, clearError } = arenasSlice.actions;
 
 export default arenasSlice.reducer;

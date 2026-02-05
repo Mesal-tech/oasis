@@ -44,18 +44,6 @@ const gamesSlice = createSlice({
     lastFetched: null,
   },
   reducers: {
-    updateGamePlayers: (state, action) => {
-      const { gameId, playerCount } = action.payload;
-      const game = state.games.find(g => g.id === gameId);
-      if (game) {
-        game.players = playerCount;
-      }
-      // Also update in trending if present
-      const trendingGame = state.trending.find(g => g.id === gameId);
-      if (trendingGame) {
-        trendingGame.players = playerCount;
-      }
-    },
     clearError: (state) => {
       state.error = null;
     },
@@ -92,5 +80,5 @@ const gamesSlice = createSlice({
   },
 });
 
-export const { updateGamePlayers, clearError } = gamesSlice.actions;
+export const { clearError } = gamesSlice.actions;
 export default gamesSlice.reducer;

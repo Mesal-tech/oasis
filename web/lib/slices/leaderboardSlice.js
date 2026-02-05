@@ -43,28 +43,6 @@ const leaderboardSlice = createSlice({
     error: null,
   },
   reducers: {
-    updatePlayerRank: (state, action) => {
-      const { playerId, newRank, gameId } = action.payload;
-      
-      // Update global leaderboard
-      if (!gameId) {
-        const playerIndex = state.global.findIndex(p => p.id === playerId);
-        if (playerIndex !== -1) {
-          state.global[playerIndex].rank = newRank;
-          // Re-sort if needed
-          state.global.sort((a, b) => a.rank - b.rank);
-        }
-      } else {
-        // Update game-specific leaderboard
-        if (state.gameLeaderboards[gameId]) {
-          const playerIndex = state.gameLeaderboards[gameId].findIndex(p => p.id === playerId);
-          if (playerIndex !== -1) {
-            state.gameLeaderboards[gameId][playerIndex].rank = newRank;
-            state.gameLeaderboards[gameId].sort((a, b) => a.rank - b.rank);
-          }
-        }
-      }
-    },
     clearError: (state) => {
       state.error = null;
     },
@@ -101,5 +79,5 @@ const leaderboardSlice = createSlice({
   },
 });
 
-export const { updatePlayerRank, clearError } = leaderboardSlice.actions;
+export const { clearError } = leaderboardSlice.actions;
 export default leaderboardSlice.reducer;
