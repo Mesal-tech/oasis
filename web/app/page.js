@@ -1,15 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Play, Trophy, Star, TrendingUp, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useSelector } from 'react-redux';
 
 export default function Home() {
   const router = useRouter();
-  const [games, setGames] = useState([]);
-  const [trendingGames, setTrendingGames] = useState([]);
   const [activeCategory, setActiveCategory] = useState('All');
   const [currentSlide, setCurrentSlide] = useState(0);
+
+  // Get data from Redux store
+  const { games, trending } = useSelector((state) => state.games);
+  const trendingGames = trending.slice(0, 5);
 
   const FEATURED_SLIDES = [
     {
@@ -43,7 +46,7 @@ export default function Home() {
       id: 4,
       title: "Whot!",
       subtitle: "Card Game",
-      image: "/assets/whot-thumb.png", // Ensure this exists or use fallback
+      image: "/assets/whot-thumb.png",
       tag: "Card",
       pool: "Play PvP or AI",
       gameId: "whot"
@@ -64,52 +67,11 @@ export default function Home() {
     { id: 3, name: "Puffy Icons", status: "MINTING NOW", price: "0.009 ETH", image: "https://images.unsplash.com/photo-1642104704074-907c0698b98d?w=800&auto=format&fit=crop" }
   ];
 
-  useEffect(() => {
-    const fetchGamesData = async () => {
-      try {
-        const response = await fetch('/api/games');
-        if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.games.length > 0) {
-                setGames(data.games);
-            } else {
-                 setGames([
-                    { id: 'slither', title: 'Slither.io', category: 'Action', activePlayers: 1240, thumbnail: '/assets/slither-thumb.jpg' },
-                    { id: 'flappy', title: 'Flappy Bird', category: 'Arcade', activePlayers: 850, thumbnail: '/assets/flappy-thumb.jpg' },
-                    { id: 'checkers', title: 'Checkers', category: 'Board', activePlayers: 100, thumbnail: '/assets/checkers-thumb.jpg' },
-                    { id: 'whot', title: 'Naija Whot', category: 'Strategy', activePlayers: 540, thumbnail: '/assets/whot-thumb.jpg' },
-                  ]);
-            }
-        }
-      } catch (error) {
-        console.error("Failed to fetch games:", error);
-      }
-    };
-
-    const fetchTrendingData = async () => {
-      try {
-        const response = await fetch('/api/games/trending');
-        if (response.ok) {
-            const data = await response.json();
-             if (data.success && data.trending.length > 0) {
-                setTrendingGames(data.trending.slice(0, 5));
-            }
-        }
-      } catch (error) {
-        console.error("Failed to fetch trending games:", error);
-      }
-    };
-
-    fetchGamesData();
-    fetchTrendingData();
-  }, []);
-
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % FEATURED_SLIDES.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + FEATURED_SLIDES.length) % FEATURED_SLIDES.length);
 
   return (
     <div className="min-h-screen bg-[#09090B] text-white font-sans overflow-x-hidden px-4 md:px-6 pb-6 w-full pt-20 md:pt-6">
-
       <div className="max-w-[1600px] mx-auto space-y-12">
 
         {/* HERO SECTION: Split Layout */}

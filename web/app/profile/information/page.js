@@ -1,11 +1,19 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { usePlayer } from '../../providers/PlayerProvider';
-import { User, Mail, Calendar, Shield } from 'lucide-react';
+import { User, Mail, Calendar, Shield, Edit2, Check, X } from 'lucide-react';
+import { useDispatch } from 'react-redux';
+import { fetchGames, fetchTrending } from '@/lib/slices/gamesSlice';
+import { fetchGlobalLeaderboard } from '@/lib/slices/leaderboardSlice';
 
 export default function ProfileInformation() {
-  const { player } = usePlayer();
+  const { player, refreshPlayer } = usePlayer();
+  const dispatch = useDispatch();
+  const [isEditingUsername, setIsEditingUsername] = useState(false);
+  const [newUsername, setNewUsername] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   if (!player) {
     return (
@@ -14,6 +22,63 @@ export default function ProfileInformation() {
       </div>
     );
   }
+
+  const handleEditClick = () => {
+    setNewUsername(player.username);
+    setIsEditingUsername(true);
+    setError('');
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingUsername(false);
+    setNewUsername('');
+    setError('');
+  };
+
+  const handleSaveUsername = async () => {
+    if (!newUsername.trim()) {
+      setError('Username cannot be empty');
+      return;
+    }
+
+    if (newUsername.trim() === player.username) {
+      setIsEditingUsername(false);
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setError('');
+
+      const response = await fetch(`/api/players/${player.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: newUsername.trim() }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to update username');
+      }
+
+      // Refresh player data
+      await refreshPlayer();
+
+      // Refresh all Redux data to update leaderboards and game stats
+      console.log('[Profile] Username updated, refreshing all data...');
+      dispatch(fetchGames());
+      dispatch(fetchTrending());
+      dispatch(fetchGlobalLeaderboard(100));
+
+      setIsEditingUsername(false);
+      setNewUsername('');
+    } catch (err) {
+      console.error('Failed to update username:', err);
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#09090B] text-white px-4 sm:px-6 lg:px-8 py-6 lg:py-8 w-full">
@@ -37,12 +102,52 @@ export default function ProfileInformation() {
 
           {/* Details Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Editable Username */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-[#52525B] uppercase tracking-wider">Username</label>
-              <div className="flex items-center gap-3 p-4 bg-[#18181B] rounded-xl border border-[#27272A]">
-                <User size={18} className="text-[#A1A1AA]" />
-                <span className="text-[#E4E4E7] font-medium">{player.username}</span>
-              </div>
+              {isEditingUsername ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={newUsername}
+                      onChange={(e) => setNewUsername(e.target.value)}
+                      className="flex-1 p-4 bg-[#18181B] rounded-xl border border-[#FF5D2E] text-[#E4E4E7] font-medium focus:outline-none focus:border-[#FF5D2E] focus:ring-1 focus:ring-[#FF5D2E]"
+                      placeholder="Enter new username"
+                      autoFocus
+                      disabled={saving}
+                    />
+                    <button
+                      onClick={handleSaveUsername}
+                      disabled={saving}
+                      className="p-4 bg-[#FF5D2E] hover:bg-[#FF6D3E] disabled:bg-[#52525B] rounded-xl transition-colors"
+                      title="Save"
+                    >
+                      <Check size={18} />
+                    </button>
+                    <button
+                      onClick={handleCancelEdit}
+                      disabled={saving}
+                      className="p-4 bg-[#27272A] hover:bg-[#3F3F46] disabled:bg-[#18181B] rounded-xl transition-colors"
+                      title="Cancel"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                  {error && (
+                    <p className="text-xs text-red-500">{error}</p>
+                  )}
+                  {saving && (
+                    <p className="text-xs text-[#A1A1AA]">Saving...</p>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 p-4 bg-[#18181B] rounded-xl border border-[#27272A] group cursor-pointer hover:border-[#3F3F46] transition-colors" onClick={handleEditClick}>
+                  <User size={18} className="text-[#A1A1AA]" />
+                  <span className="flex-1 text-[#E4E4E7] font-medium">{player.username}</span>
+                  <Edit2 size={16} className="text-[#52525B] group-hover:text-[#FF5D2E] transition-colors" />
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">

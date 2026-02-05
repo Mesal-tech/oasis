@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
 import { GAMES } from '../../../lib/constants';
 
+// Cache configuration
+const CACHE_DURATION = 60; // 60 seconds
+
 export async function GET() {
   try {
     const gamesWithStats = await Promise.all(
@@ -18,7 +21,14 @@ export async function GET() {
       })
     );
 
-    return NextResponse.json({ success: true, games: gamesWithStats });
+    return NextResponse.json(
+      { success: true, games: gamesWithStats },
+      {
+        headers: {
+          'Cache-Control': `public, s-maxage=${CACHE_DURATION}, stale-while-revalidate=${CACHE_DURATION * 2}`,
+        },
+      }
+    );
   } catch (error) {
     console.error('[API /api/games] Error:', error);
     console.error('[API /api/games] Error message:', error.message);

@@ -64,7 +64,14 @@ export async function GET() {
         rank: index + 1
       }));
 
-    return NextResponse.json({ success: true, trending: sorted });
+    return NextResponse.json(
+      { success: true, trending: sorted },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=240',
+        },
+      }
+    );
   } catch (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

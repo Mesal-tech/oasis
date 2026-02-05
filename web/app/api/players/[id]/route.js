@@ -29,7 +29,7 @@ export async function GET(request, { params }) {
 // PUT /api/players/[id] - Update player profile
 export async function PUT(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const { username, email } = await request.json();
 
     const player = await prisma.player.update({

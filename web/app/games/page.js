@@ -1,35 +1,19 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Search, Gamepad2, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useSelector } from 'react-redux';
 
 export default function Games() {
   const router = useRouter();
-  const [games, setGames] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
 
-  const CATEGORIES = ["All", "Action", "Strategy", "Puzzle", "Racing", "Arcade", "Shooter", "Sports"];
+  // Get games from Redux store
+  const { games } = useSelector((state) => state.games);
 
-  useEffect(() => {
-    const fetchGamesData = async () => {
-      try {
-        const response = await fetch('/api/games');
-        if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.games.length > 0) {
-                setGames(data.games);
-            } else {
-                 setGames([]); // If API returns empty, UI will show "No games found". Could fallback if preferred.
-            }
-        }
-      } catch (error) {
-        console.error("Failed to fetch games", error);
-      }
-    };
-    fetchGamesData();
-  }, []);
+  const CATEGORIES = ["All", "Action", "Strategy", "Puzzle", "Racing", "Arcade", "Shooter", "Sports"];
 
   const filteredGames = games.filter(game => {
     // Game title might be in 'title' (from API) or 'name' (if using fallback from original)

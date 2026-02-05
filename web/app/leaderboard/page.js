@@ -3,90 +3,40 @@
 import React, { useState, useEffect } from 'react';
 import { ShoppingBag, Crown } from 'lucide-react';
 import { usePlayer } from '../providers/PlayerProvider';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchGameLeaderboard } from '@/lib/slices/leaderboardSlice';
 
 export default function Leaderboard() {
   const { player } = usePlayer();
+  const dispatch = useDispatch();
   const [activeTab, setActiveTab] = useState('global');
   const [selectedGame, setSelectedGame] = useState('all');
-  const [globalLeaderboard, setGlobalLeaderboard] = useState([]);
-  const [gameLeaderboard, setGameLeaderboard] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [games, setGames] = useState([]);
 
-  useEffect(() => {
-    fetchGames();
-    fetchLeaderboards();
-  }, []);
+  // Get data from Redux store
+  const { global: globalLeaderboard, gameLeaderboards, loading } = useSelector((state) => state.leaderboard);
+  const { games } = useSelector((state) => state.games);
+  
+  const gameLeaderboard = selectedGame !== 'all' ? (gameLeaderboards[selectedGame] || []) : [];
 
   useEffect(() => {
     if (activeTab === 'game' && selectedGame !== 'all') {
-      fetchGameLeaderboard(selectedGame);
-    }
-  }, [selectedGame, activeTab]);
-
-  const fetchGames = async () => {
-    try {
-      const response = await fetch('/api/games');
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-            // Filter games that actually support leaderboards if necessary, or just use all
-           setGames(data.games);
-        }
+      // Fetch game leaderboard if not already loaded
+      if (!gameLeaderboards[selectedGame]) {
+        dispatch(fetchGameLeaderboard({ gameId: selectedGame, limit: 100 }));
       }
-    } catch (error) {
-      console.error('Failed to fetch games:', error);
     }
-  };
-
-  const fetchLeaderboards = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/leaderboard/global?limit=100');
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-            // Adapt format if necessary. The API likely returns { entries: [...] }
-            // Let's assume API returns array in 'leaderboard' or 'entries'
-             const entries = data.leaderboard || data.entries || [];
-             const normalizedData = entries.map(p => ({
-              player: p.player || p, // Handle structure variations
-              xp: p.xp || p.totalXp, // Use correct field
-              score: p.xp || p.totalXp, // Normalize score
-              rank: p.rank
-            }));
-            setGlobalLeaderboard(normalizedData);
-        }
-      }
-      setLoading(false);
-    } catch (error) {
-      console.error('Failed to fetch leaderboards:', error);
-      setLoading(false);
-    }
-  };
-
-  const fetchGameLeaderboard = async (gameId) => {
-    try {
-      setLoading(true);
-      const response = await fetch(`/api/leaderboard/${gameId}`);
-      if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
-            const entries = data.leaderboard || data.entries || [];
-             // Normalize based on what the API actually returns (ArenaPlayer?)
-             // Assuming API /api/leaderboard/[gameId] returns leaderboard entries
-             setGameLeaderboard(entries);
-          }
-      }
-      setLoading(false);
-    } catch (error) {
-      console.error('Failed to fetch game leaderboard:', error);
-      setLoading(false);
-    }
-  };
+  }, [selectedGame, activeTab, dispatch, gameLeaderboards]);
 
   const displayData = activeTab === 'global' ? globalLeaderboard : gameLeaderboard;
-  const topThree = displayData.slice(0, 3);
+  
+  // Normalize data structure for display
+  const normalizedData = displayData.map((entry, idx) => ({
+    player: entry.player || entry,
+    score: entry.xp || entry.totalXp || entry.score || 0,
+    rank: entry.rank || idx + 1
+  }));
+  
+  const topThree = normalizedData.slice(0, 3);
 
   return (
     <div className="min-h-screen bg-[#09090B] text-white px-4 sm:px-6 lg:px-8 py-6 lg:py-12 overflow-y-auto w-full pt-20 md:pt-6">
@@ -239,7 +189,7 @@ export default function Leaderboard() {
               <div className="p-12 text-center text-[#52525B]">Loading leaderboard...</div>
             ) : (
               <div className="divide-y divide-[#18181B]">
-                {displayData.map((entry, idx) => {
+                {normalizedData.map((entry, idx) => {
                   const isCurrentUser = player?.id === entry.player?.id;
                   return (
                     <div
@@ -279,7 +229,7 @@ export default function Leaderboard() {
             {loading ? (
               <div className="bg-[#121215] border border-[#27272A] rounded-2xl p-8 text-center text-[#52525B]">Loading leaderboard...</div>
             ) : (
-              displayData.map((entry, idx) => {
+              normalizedData.map((entry, idx) => {
                 const isCurrentUser = player?.id === entry.player?.id;
                 return (
                   <div
