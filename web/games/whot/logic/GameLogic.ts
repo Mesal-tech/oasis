@@ -10,11 +10,11 @@ export class WhotGameLogic {
   public gameOver: boolean = false;
   public winner: WhotPlayer | null = null;
   private turnDirection: number = 1;
-  private nextTurnAction: 'normal' | 'skip' | 'repeat' = 'normal';
+  private nextTurnAction: 'normal' | 'skip' | 'repeat' | 'mustDraw' = 'normal';
 
   constructor(playerNames: string[], autoDeal: boolean = true) {
     this.deck = new WhotDeck();
-    this.players = playerNames.map((name, i) => new WhotPlayer(name, i > 0)); 
+    this.players = playerNames.map((name, i) => new WhotPlayer(name, i > 0));
     if (autoDeal) {
       this.dealInitialCards();
     }
@@ -37,7 +37,7 @@ export class WhotGameLogic {
     let firstCard = this.deck.draw();
     // Cannot start with a special card
     while (firstCard && firstCard.isSpecial()) {
-      this.deck.discard(firstCard); 
+      this.deck.discard(firstCard);
       firstCard = this.deck.draw();
     }
     if (firstCard) {
@@ -54,7 +54,7 @@ export class WhotGameLogic {
     const topCard = this.deck.getTopCard();
 
     if (!topCard || !card.canPlayOn(topCard, this.requestedShape)) {
-        return false;
+      return false;
     }
 
     player.removeCard(card);
@@ -84,13 +84,13 @@ export class WhotGameLogic {
         case 1: // Hold on
           this.nextTurnAction = 'repeat';
           break;
-        case 2: // Pick Two
+        case 2: // Pick Two - victim must draw immediately (not skipped)
           this.drawForNextPlayer(2);
-          this.nextTurnAction = 'skip';
+          this.nextTurnAction = 'mustDraw';
           break;
-        case 5: // Pick Three
+        case 5: // Pick Three - victim must draw immediately (not skipped)
           this.drawForNextPlayer(3);
-          this.nextTurnAction = 'skip';
+          this.nextTurnAction = 'mustDraw';
           break;
         case 8: // Suspension
           this.nextTurnAction = 'skip';
@@ -127,11 +127,13 @@ export class WhotGameLogic {
 
   private advanceTurn() {
     if (this.nextTurnAction === 'repeat') {
-        // Current player goes again, index doesn't change
-        this.nextTurnAction = 'normal';
-        return;
+      // Current player goes again, index doesn't change
+      this.nextTurnAction = 'normal';
+      return;
     }
 
+    // 'mustDraw' advances normally (1 step) - the victim must pick cards immediately
+    // 'skip' skips the next player entirely (Suspension card)
     let steps = this.nextTurnAction === 'skip' ? 2 : 1;
     this.currentPlayerIndex = (this.currentPlayerIndex + (steps * this.turnDirection) + this.players.length) % this.players.length;
     this.nextTurnAction = 'normal';
